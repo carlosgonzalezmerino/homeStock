@@ -41,7 +41,9 @@ class ProductRepository:
         if product is None:
             product = Product(ean=data.ean, name=data.name, source=data.source)
         for field in _CATALOG_FIELDS:
-            setattr(product, field, getattr(data, field))
+            value = getattr(data, field)
+            if value is not None:
+                setattr(product, field, value)
         product.source = data.source
         product.updated_at = datetime.now(UTC)
         self._session.add(product)
