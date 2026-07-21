@@ -1,6 +1,7 @@
 from collections.abc import Iterator
 
 from sqlalchemy import Engine
+from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
 DATABASE_URL = "sqlite:///homestock.db"
@@ -10,6 +11,13 @@ _engine: Engine | None = None
 
 def get_engine(url: str = DATABASE_URL) -> Engine:
     connect_args = {"check_same_thread": False}
+    if url == "sqlite://":
+        # In-memory SQLite: use StaticPool so all connections share the same DB
+        return create_engine(
+            url,
+            connect_args=connect_args,
+            poolclass=StaticPool,
+        )
     return create_engine(url, connect_args=connect_args)
 
 

@@ -24,6 +24,10 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.per-file-ignores]
 "app/api/deps.py" = ["B008"]
+"app/api/resolve.py" = ["B008"]
+"app/api/products.py" = ["B008"]
+"app/api/inventory.py" = ["B008"]
+"app/api/shopping_list.py" = ["B008"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
