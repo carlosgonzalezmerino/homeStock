@@ -1,0 +1,4 @@
+code	product_name	brands	image_url	categories	quantity	energy-kcal_100g	fat_100g	saturated-fat_100g	carbohydrates_100g	sugars_100g	fiber_100g	proteins_100g	salt_100g
+111	Beans	ACME	http://img/b.jpg	Canned	400 g	90	0.5	0.1	15	1.2	6	7	0.8
+222	Olive Oil	Hacendado		Oils	1 L	824	92	14	0	0	0	0	0
+	No Code Row	X											
