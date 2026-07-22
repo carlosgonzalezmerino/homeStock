@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 
 from app.db import create_db_and_tables, get_engine
 from app.models import InventoryItem, OffProduct, Product
-from scripts.off_import import import_off, parse_row
+from scripts.off_import import _is_mercadona, import_off, parse_row
 
 FIXTURE = str(Path(__file__).parent / "fixtures" / "off_sample.csv")
 
@@ -46,14 +46,67 @@ def test_parse_row_blank_numeric_is_none() -> None:
     assert product.kcal_per_100g is None
 
 
-def test_import_off_loads_valid_rows_only() -> None:
+def test_is_mercadona_matches_case_insensitive_substring() -> None:
+    assert _is_mercadona({"stores": "Mercadona"}) is True
+    assert _is_mercadona({"stores": "mercadona, Carrefour"}) is True
+    assert _is_mercadona({"stores": "MERCADONA"}) is True
+
+
+def test_is_mercadona_false_when_absent_empty_or_other_store() -> None:
+    assert _is_mercadona({}) is False
+    assert _is_mercadona({"stores": ""}) is False
+    assert _is_mercadona({"stores": "Carrefour"}) is False
+
+
+def test_import_off_loads_mercadona_rows_only() -> None:
     engine = get_engine("sqlite://")
     create_db_and_tables(engine)
     count = import_off(FIXTURE, engine)
-    assert count == 2  # the no-code row is skipped
+    # 222 is Carrefour, duplicate 111 and the no-code row are skipped.
+    assert count == 1
     with Session(engine) as session:
-        eans = {p.ean for p in session.exec(select(OffProduct)).all()}
-    assert eans == {"111", "222"}
+        products = session.exec(select(OffProduct)).all()
+    eans = {p.ean for p in products}
+    assert eans == {"111"}
+
+
+def test_import_off_dedupes_by_ean_keeping_first() -> None:
+    engine = get_engine("sqlite://")
+    create_db_and_tables(engine)
+    import_off(FIXTURE, engine)
+    with Session(engine) as session:
+        product = session.exec(select(OffProduct)).one()
+    # Fixture has two Mercadona rows for EAN 111; the first wins.
+    assert product.name == "Beans"
+
+
+def test_import_off_skips_non_mercadona() -> None:
+    engine = get_engine("sqlite://")
+    create_db_and_tables(engine)
+    import_off(FIXTURE, engine)
+    with Session(engine) as session:
+        assert session.exec(
+            select(OffProduct).where(OffProduct.ean == "222")
+        ).first() is None
+
+
+def test_import_off_handles_fields_larger_than_csv_default_limit(
+    tmp_path: Path,
+) -> None:
+    # Real OFF rows have fields exceeding csv's default 128 KB limit.
+    big_value = "x" * 200_000
+    csv_path = tmp_path / "big.csv"
+    header = "code\tproduct_name\tcategories\tstores\n"
+    row = f"111\tBeans\t{big_value}\tMercadona\n"
+    csv_path.write_text(header + row, encoding="utf-8")
+
+    engine = get_engine("sqlite://")
+    create_db_and_tables(engine)
+    count = import_off(str(csv_path), engine)
+
+    assert count == 1
+    with Session(engine) as session:
+        assert session.exec(select(OffProduct)).one().ean == "111"
 
 
 def test_import_off_is_idempotent_and_isolates_products() -> None:
@@ -68,6 +121,6 @@ def test_import_off_is_idempotent_and_isolates_products() -> None:
     import_off(FIXTURE, engine)  # re-run: must not duplicate or touch products
 
     with Session(engine) as session:
-        assert len(session.exec(select(OffProduct)).all()) == 2
+        assert len(session.exec(select(OffProduct)).all()) == 1
         assert session.exec(select(Product)).one().name == "Curated"
         assert len(session.exec(select(InventoryItem)).all()) == 1

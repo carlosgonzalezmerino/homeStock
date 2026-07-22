@@ -2,6 +2,9 @@ import argparse
 import csv
 import sys
 
+# OFF rows carry very long fields (e.g. categories); lift csv's 128 KB cap.
+csv.field_size_limit(sys.maxsize)
+
 from sqlalchemy import Engine
 from sqlmodel import Session, SQLModel
 
@@ -36,6 +39,13 @@ def _clean(value: str | None) -> str | None:
     return value.strip()
 
 
+def _is_mercadona(row: dict[str, str]) -> bool:
+    stores = row.get("stores")
+    if not stores:
+        return False
+    return "mercadona" in stores.lower()
+
+
 def parse_row(row: dict[str, str]) -> OffProduct | None:
     ean = (row.get("code") or "").strip()
     name = (row.get("product_name") or "").strip()
@@ -60,15 +70,21 @@ def import_off(csv_path: str, engine: Engine, chunk_size: int = 1000) -> int:
     SQLModel.metadata.create_all(engine, tables=[OffProduct.__table__])
 
     imported = 0
+    seen: set[str] = set()
     with (
         open(csv_path, newline="", encoding="utf-8") as handle,
         Session(engine) as session,
     ):
         reader = csv.DictReader(handle, delimiter="\t")
         for row in reader:
+            if not _is_mercadona(row):
+                continue
             product = parse_row(row)
             if product is None:
                 continue
+            if product.ean in seen:  # duplicate EAN in CSV: keep the first
+                continue
+            seen.add(product.ean)
             session.merge(product)  # upsert by PK (ean)
             imported += 1
             if imported % chunk_size == 0:
