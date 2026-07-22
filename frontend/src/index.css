@@ -31,25 +31,35 @@
 
 .dark {
   --surface: 14 21 14;
+  --surface-dim: 14 21 14;
+  --surface-bright: 51 59 51;
   --surface-container-lowest: 9 16 9;
   --surface-container-low: 22 29 22;
   --surface-container: 26 34 26;
   --surface-container-high: 36 44 36;
+  --surface-container-highest: 47 55 46;
   --on-surface: 220 229 217;
   --on-surface-variant: 188 203 185;
+  --inverse-surface: 220 229 217;
+  --inverse-on-surface: 42 50 42;
   --outline: 134 149 133;
   --outline-variant: 61 74 61;
+  --surface-tint: 74 225 118;
   --primary: 75 226 119;
   --on-primary: 0 57 21;
   --primary-container: 34 197 94;
   --on-primary-container: 0 75 30;
+  --inverse-primary: 0 110 47;
   --secondary: 185 199 224;
+  --on-secondary: 35 49 68;
   --secondary-container: 60 74 94;
   --on-secondary-container: 171 185 210;
   --tertiary: 255 181 171;
+  --on-tertiary: 96 19 13;
   --tertiary-container: 255 139 124;
   --on-tertiary-container: 118 35 27;
   --error: 255 180 171;
+  --on-error: 105 0 5;
   --error-container: 147 0 10;
   --on-error-container: 255 218 214;
   --background: 14 21 14;
