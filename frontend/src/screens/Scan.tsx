@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, type RefObject } from "react";
 import { useNavigate } from "react-router-dom";
 import { useScanner } from "@/hooks";
 import { get, ApiError } from "@/api/client";
@@ -33,9 +33,11 @@ export function Scan() {
       <h1 className="text-headline-md text-on-surface">Escanear producto</h1>
 
       {!cameraError && (
-        <div
-          ref={ref}
-          className="w-full max-w-sm aspect-square rounded-lg overflow-hidden bg-surface-container"
+        <video
+          ref={ref as RefObject<HTMLVideoElement>}
+          muted
+          playsInline
+          className="w-full max-w-sm rounded-lg bg-surface-container"
         />
       )}
 
