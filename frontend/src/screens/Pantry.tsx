@@ -7,14 +7,28 @@ export function Pantry() {
   const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useInventory();
   const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  const categories = useMemo(() => {
+    const seen = new Set<string>();
+    for (const i of data ?? []) {
+      seen.add(i.product.category ?? "Otros");
+    }
+    return [...seen].sort();
+  }, [data]);
 
   const filtered = useMemo(() => {
-    return (data ?? []).filter((i) =>
-      !search ||
-      i.product.name.toLowerCase().includes(search.toLowerCase()) ||
-      (i.product.brand ?? "").toLowerCase().includes(search.toLowerCase())
-    );
-  }, [data, search]);
+    return (data ?? []).filter((i) => {
+      const matchesSearch =
+        !search ||
+        i.product.name.toLowerCase().includes(search.toLowerCase()) ||
+        (i.product.brand ?? "").toLowerCase().includes(search.toLowerCase());
+      const matchesCategory =
+        !activeCategory ||
+        (i.product.category ?? "Otros") === activeCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [data, search, activeCategory]);
 
   if (isLoading) return <Spinner />;
   if (isError) return <ErrorState message="Error al cargar" onRetry={refetch} />;
@@ -30,7 +44,35 @@ export function Pantry() {
         className="w-full rounded-lg border border-outline-variant bg-surface-container px-4 py-3 text-body-lg text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary"
       />
 
-{filtered.length === 0 && (data?.length ?? 0) === 0 ? (
+      {categories.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          <button
+            onClick={() => setActiveCategory(null)}
+            className={`shrink-0 rounded-full px-3 py-1 text-label-md transition-colors ${
+              !activeCategory
+                ? "bg-primary-container text-on-primary-container"
+                : "bg-surface-container text-on-surface-variant"
+            }`}
+          >
+            Todos
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat === activeCategory ? null : cat)}
+              className={`shrink-0 rounded-full px-3 py-1 text-label-md transition-colors ${
+                activeCategory === cat
+                  ? "bg-primary-container text-on-primary-container"
+                  : "bg-surface-container text-on-surface-variant"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {filtered.length === 0 && (data?.length ?? 0) === 0 ? (
         <EmptyState message="Tu despensa está vacía. Escanea tu primer producto" />
       ) : filtered.length === 0 ? (
         <EmptyState message="Sin resultados" />
@@ -48,7 +90,12 @@ export function Pantry() {
                   {item.product.brand && (
                     <p className="text-body-sm text-on-surface-variant">{item.product.brand}</p>
                   )}
-</div>
+                  {item.product.category && (
+                    <span className="mt-1 inline-block rounded-full bg-surface-container-high px-2 py-0.5 text-label-md text-on-surface-variant">
+                      {item.product.category}
+                    </span>
+                  )}
+                </div>
                 <StatusBadge status={item.inventory.quantity === 0 ? "empty" : item.low ? "low" : "ok"} />
               </div>
               <div className="mt-3">
