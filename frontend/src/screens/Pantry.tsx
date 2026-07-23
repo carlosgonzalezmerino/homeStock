@@ -50,12 +50,6 @@ export function Pantry() {
   );
 }
 
-function statusFor(item: InventoryWithProductOut): "ok" | "low" | "empty" {
-  if (item.inventory.quantity === 0) return "empty";
-  if (item.low) return "low";
-  return "ok";
-}
-
 function PantryItem({
   item,
   onNavigate,
