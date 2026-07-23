@@ -119,6 +119,15 @@ export function Scan() {
         </div>
       )}
 
+      {/* Debug panel — remove once scanner works reliably */}
+      {scanner.debugInfo.length > 0 && (
+        <div className="w-full max-w-sm rounded-lg bg-surface-container p-3 font-mono text-xs text-on-surface-variant space-y-0.5">
+          {scanner.debugInfo.map((line, i) => (
+            <div key={i}>{line}</div>
+          ))}
+        </div>
+      )}
+
       {/* Divider */}
       <div className="flex w-full max-w-sm items-center gap-3">
         <hr className="flex-1 border-outline-variant" />

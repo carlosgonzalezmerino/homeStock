@@ -13,6 +13,7 @@ vi.mock("@/hooks/useScanner", () => ({
     state: "error" as const,
     error: "Camera not available in test",
     hasBarcodeDetector: false,
+    debugInfo: [],
     start: vi.fn(),
     stop: vi.fn(),
     detect: vi.fn().mockResolvedValue(null),
