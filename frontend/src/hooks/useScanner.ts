@@ -18,7 +18,17 @@ export interface UseScannerReturn {
   detect: () => Promise<string | null>;
 }
 
-const BARCODE_FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"];
+const WANTED_FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"];
+
+async function makeBarcodeDetector(): Promise<BarcodeDetector> {
+  try {
+    const supported = await BarcodeDetector.getSupportedFormats();
+    const formats = WANTED_FORMATS.filter((f) => supported.includes(f));
+    return new BarcodeDetector({ formats: formats.length ? formats : WANTED_FORMATS });
+  } catch {
+    return new BarcodeDetector({ formats: WANTED_FORMATS });
+  }
+}
 
 export function useScanner(onDetect?: (ean: string) => void): UseScannerReturn {
   const ref = useRef<HTMLVideoElement>(null);
@@ -77,7 +87,7 @@ export function useScanner(onDetect?: (ean: string) => void): UseScannerReturn {
 
     // Continuous detection loop — only if BarcodeDetector available AND callback given
     if (hasBarcodeDetector && onDetect) {
-      const detector = new BarcodeDetector({ formats: BARCODE_FORMATS });
+      const detector = await makeBarcodeDetector();
 
       const tick = async () => {
         if (!activeRef.current || !ref.current) return;
@@ -102,7 +112,7 @@ export function useScanner(onDetect?: (ean: string) => void): UseScannerReturn {
   const detect = useCallback(async (): Promise<string | null> => {
     if (!hasBarcodeDetector || !ref.current) return null;
     try {
-      const detector = new BarcodeDetector({ formats: BARCODE_FORMATS });
+      const detector = await makeBarcodeDetector();
       const results = await detector.detect(ref.current);
       return results.length > 0 ? results[0].rawValue : null;
     } catch {
