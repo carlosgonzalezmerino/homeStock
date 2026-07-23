@@ -39,6 +39,8 @@ export function CustomEntry() {
     brand: "",
   });
 
+  const [customEan, setCustomEan] = useState<string | null>(null);
+
   const createProduct = useCreateProduct();
   const addInventory = useAddInventory();
 
@@ -64,13 +66,14 @@ export function CustomEntry() {
     let ean: string;
 
     if (step === "create") {
-      const customEan = generateCustomEan();
+      const eanToUse = customEan ?? generateCustomEan();
+      if (!customEan) setCustomEan(eanToUse);
       await createProduct.mutateAsync({
-        ean: customEan,
+        ean: eanToUse,
         name: formValues.name,
         ...(formValues.brand ? { brand: formValues.brand } : {}),
       });
-      ean = customEan;
+      ean = eanToUse;
     } else {
       ean = selectedProduct!.ean;
     }
@@ -186,8 +189,9 @@ export function CustomEntry() {
           </div>
         </Field>
 
-        <Field label="Cantidad inicial">
+        <Field label="Cantidad inicial" htmlFor="field-quantity">
           <input
+            id="field-quantity"
             type="number"
             min={1}
             value={formValues.quantity}
@@ -196,8 +200,9 @@ export function CustomEntry() {
           />
         </Field>
 
-        <Field label="Umbral mínimo">
+        <Field label="Umbral mínimo" htmlFor="field-threshold">
           <input
+            id="field-threshold"
             type="number"
             min={0}
             value={formValues.threshold}
@@ -206,8 +211,9 @@ export function CustomEntry() {
           />
         </Field>
 
-        <Field label="Unidad">
+        <Field label="Unidad" htmlFor="field-unit">
           <input
+            id="field-unit"
             value={formValues.unit}
             onChange={(e) => setFormValues({ ...formValues, unit: e.target.value })}
             className="w-full rounded-lg border border-outline-variant bg-surface-container px-4 py-3 text-body-lg text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
@@ -226,10 +232,10 @@ export function CustomEntry() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-label-md text-on-surface-variant">{label}</label>
+      <label htmlFor={htmlFor} className="text-label-md text-on-surface-variant">{label}</label>
       {children}
     </div>
   );
