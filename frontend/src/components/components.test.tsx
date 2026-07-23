@@ -14,14 +14,25 @@ import {
 // ── StatusBadge ───────────────────────────────────────────────────────────────
 
 describe("StatusBadge", () => {
-  it("shows EN BUEN ESTADO when low is false", () => {
-    render(<StatusBadge low={false} />);
-    expect(screen.getByText("EN BUEN ESTADO")).toBeInTheDocument();
+  it("renders a circle with aria-label 'Stock OK' when status is ok", () => {
+    const { container } = render(<StatusBadge status="ok" />);
+    const dot = container.firstChild as HTMLElement;
+    expect(dot).toHaveAttribute("aria-label", "Stock OK");
+    expect(dot).toHaveClass("bg-primary");
   });
 
-  it("shows STOCK BAJO when low is true", () => {
-    render(<StatusBadge low={true} />);
-    expect(screen.getByText("STOCK BAJO")).toBeInTheDocument();
+  it("renders a circle with aria-label 'Stock bajo' when status is low", () => {
+    const { container } = render(<StatusBadge status="low" />);
+    const dot = container.firstChild as HTMLElement;
+    expect(dot).toHaveAttribute("aria-label", "Stock bajo");
+    expect(dot).toHaveClass("bg-tertiary");
+  });
+
+  it("renders a circle with aria-label 'Agotado' when status is empty", () => {
+    const { container } = render(<StatusBadge status="empty" />);
+    const dot = container.firstChild as HTMLElement;
+    expect(dot).toHaveAttribute("aria-label", "Agotado");
+    expect(dot).toHaveClass("bg-error");
   });
 });
 
