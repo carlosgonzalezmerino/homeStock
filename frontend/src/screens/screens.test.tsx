@@ -438,6 +438,68 @@ describe("ProductDetail", () => {
   });
 });
 
+// ─── ProductDetail — location ────────────────────────────────────────────────
+
+describe("ProductDetail — location", () => {
+  const ean = "1234567890123";
+
+  it("shows location selector for tracked item", async () => {
+    server.use(
+      http.get(`/api/resolve/${ean}`, () =>
+        HttpResponse.json({ ean, name: "Leche Entera", source: "off" })
+      ),
+      http.get("/api/inventory", () =>
+        HttpResponse.json([{
+          inventory: { id: 1, ean, quantity: 5, threshold: 2, unit: "units", location: "pantry" },
+          product: { ean, name: "Leche Entera", source: "off" },
+          low: false,
+        }])
+      )
+    );
+    wrap(<ProductDetail />, { path: "/despensa/:ean", initialEntries: [`/despensa/${ean}`] });
+    await screen.findByText("Leche Entera");
+    expect(screen.getByRole("radio", { name: /despensa/i })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /congelador/i })).toBeInTheDocument();
+  });
+
+  it("PATCHes location when selector changes", async () => {
+    let patchBody: Record<string, unknown> | null = null;
+    server.use(
+      http.get(`/api/resolve/${ean}`, () =>
+        HttpResponse.json({ ean, name: "Leche Entera", source: "off" })
+      ),
+      http.get("/api/inventory", () =>
+        HttpResponse.json([{
+          inventory: { id: 1, ean, quantity: 5, threshold: 2, unit: "units", location: "pantry" },
+          product: { ean, name: "Leche Entera", source: "off" },
+          low: false,
+        }])
+      ),
+      http.patch(`/api/inventory/${ean}`, async ({ request }) => {
+        patchBody = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ id: 1, ean, quantity: 5, threshold: 2, unit: "units", location: "freezer" });
+      }),
+      http.get("/api/shopping-list", () => HttpResponse.json([]))
+    );
+    wrap(<ProductDetail />, { path: "/despensa/:ean", initialEntries: [`/despensa/${ean}`] });
+    await screen.findByText("Leche Entera");
+    fireEvent.click(screen.getByRole("radio", { name: /congelador/i }));
+    await waitFor(() => expect(patchBody).toMatchObject({ location: "freezer" }));
+  });
+
+  it("does not show location selector for untracked item", async () => {
+    server.use(
+      http.get(`/api/resolve/${ean}`, () =>
+        HttpResponse.json({ ean, name: "Leche Entera", source: "off" })
+      ),
+      http.get("/api/inventory", () => HttpResponse.json([]))
+    );
+    wrap(<ProductDetail />, { path: "/scan/:ean", initialEntries: [`/scan/${ean}`] });
+    await screen.findByText("Leche Entera");
+    expect(screen.queryByRole("radio", { name: /despensa/i })).not.toBeInTheDocument();
+  });
+});
+
 // ─── Scan ───────────────────────────────────────────────────────────────────
 
 describe("Scan", () => {

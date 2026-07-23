@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useResolve, useInventory, usePatchInventory, useAddInventory, useDeleteInventory } from "@/hooks";
 import { Card, Button, QuantityStepper, Spinner, ErrorState } from "@/components";
-import type { ProductOut } from "@/types";
+import type { ProductOut, Location } from "@/types";
 
 interface MacroRowProps {
   label: string;
@@ -32,7 +32,7 @@ function MacrosCard({ product }: { product: ProductOut }) {
 
   return (
     <Card>
-      <p className="text-label-md text-on-surface-variant mb-1">Información nutricional (por 100 g)</p>
+      <p className="text-body-lg text-on-surface-variant mb-1">Información nutricional (por 100 g)</p>
       <div className="divide-y divide-outline-variant">
         <MacroRow label="Calorías" value={product.kcal_per_100g} unit="kcal" highlight />
         <MacroRow label="Proteínas" value={product.proteins_per_100g} highlight />
@@ -113,54 +113,54 @@ export function ProductDetail() {
         ← Volver
       </button>
 
-      <Card>
-        <div className="flex items-start gap-4">
-          {product.image_url && (
-            <img
-              src={product.image_url}
-              alt={product.name}
-              className="h-20 w-20 rounded-md object-contain bg-surface-container-low shrink-0"
-            />
+      <div className="flex items-start gap-4">
+        {product.image_url && (
+          <img
+            src={product.image_url}
+            alt={product.name}
+            className="h-20 w-20 rounded-md object-contain bg-surface-container-low shrink-0"
+          />
+        )}
+        <div className="min-w-0">
+          <h1 className="text-headline-md text-on-surface">{product.name}</h1>
+          {product.brand && (
+            <p className="text-body-sm text-on-surface-variant">{product.brand}</p>
           )}
-          <div className="min-w-0">
-            <h1 className="text-headline-md text-on-surface">{product.name}</h1>
-            {product.brand && (
-              <p className="text-body-sm text-on-surface-variant">{product.brand}</p>
-            )}
-            {product.category && (
-              <p className="text-body-sm text-on-surface-variant">{product.category}</p>
-            )}
-            {product.quantity_desc && (
-              <p className="text-body-sm text-on-surface-variant">{product.quantity_desc}</p>
-            )}
-            <span className="mt-2 inline-block rounded-full bg-primary-container px-2 py-0.5 text-label-md text-on-primary-container">
-              {product.source === "manual" ? "Manual" : "Reconocido"}
-            </span>
-          </div>
+          {product.quantity_desc && (
+            <p className="text-body-sm text-on-surface-variant">{product.quantity_desc}</p>
+          )}
+          <span className="mt-2 inline-block rounded-full bg-primary-container px-2 py-0.5 text-label-md text-on-primary-container">
+            {product.source === "manual" ? "Manual" : "Reconocido"}
+          </span>
         </div>
-      </Card>
-
-      <MacrosCard product={product} />
+      </div>
 
       <Card>
-        <p className="text-label-md text-on-surface-variant mb-stack-sm">
+        <p className="text-body-lg text-on-surface-variant mb-stack-sm">
           {tracked ? "Cantidad actual" : "Cantidad a añadir"}
         </p>
-        <QuantityStepper value={currentQty} onChange={setQty} />
+        <div className="flex items-center justify-between gap-4">
+          <QuantityStepper size="xs" value={currentQty} onChange={setQty} />
+          <Button size="sm" onClick={handleUpdate} disabled={patch.isPending || add.isPending}>
+            {tracked ? "Actualizar cantidad" : "Añadir a mi despensa"}
+          </Button>
+        </div>
       </Card>
 
       {tracked && (
         <Card>
-          <p className="text-label-md text-on-surface-variant mb-1">Umbral de alerta</p>
+          <p className="text-body-lg text-on-surface-variant mb-1">Umbral de alerta</p>
           <p className="text-body-sm text-on-surface-variant mb-stack-sm">
             Recibirás alerta cuando la cantidad sea inferior a este valor
           </p>
           <div className="flex items-center justify-between gap-4">
             <QuantityStepper
+              size="xs"
               value={threshold}
               onChange={(n) => { setThreshold(n); setThresholdDirty(true); }}
             />
             <Button
+              size="sm"
               onClick={handleThreshold}
               disabled={!thresholdDirty || patch.isPending}
             >
@@ -170,16 +170,41 @@ export function ProductDetail() {
         </Card>
       )}
 
-      <div className="flex flex-col gap-3">
-        <Button onClick={handleUpdate} disabled={patch.isPending || add.isPending}>
-          {tracked ? "Actualizar cantidad" : "Añadir a mi despensa"}
+      <MacrosCard product={product} />
+
+      {tracked && (
+        <Card>
+          <p className="text-body-lg text-on-surface-variant mb-stack-sm">Ubicación</p>
+          <div className="flex gap-6">
+            {(["pantry", "freezer"] as const).map((loc) => (
+              <label key={loc} className="flex items-center gap-2 text-body-lg text-on-surface cursor-pointer">
+                <input
+                  type="radio"
+                  name="location"
+                  value={loc}
+                  aria-label={loc === "pantry" ? "Despensa" : "Congelador"}
+                  checked={
+                    loc === "freezer"
+                      ? tracked.inventory.location === "freezer"
+                      : tracked.inventory.location !== "freezer"
+                  }
+                  onChange={() =>
+                    patch.mutate({ ean, body: { location: loc } })
+                  }
+                  className="accent-primary"
+                />
+                {loc === "pantry" ? "Despensa" : "Congelador"}
+              </label>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {tracked && (
+        <Button variant="ghost" onClick={handleDelete} disabled={remove.isPending}>
+          Quitar de la despensa
         </Button>
-        {tracked && (
-          <Button variant="ghost" onClick={handleDelete} disabled={remove.isPending}>
-            Quitar de la despensa
-          </Button>
-        )}
-      </div>
+      )}
     </div>
   );
 }
