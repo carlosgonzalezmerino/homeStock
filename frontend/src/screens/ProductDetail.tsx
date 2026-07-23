@@ -126,6 +126,9 @@ export function ProductDetail() {
           {product.brand && (
             <p className="text-body-sm text-on-surface-variant">{product.brand}</p>
           )}
+          {product.category && (
+            <p className="text-body-sm text-on-surface-variant">{product.category}</p>
+          )}
           {product.quantity_desc && (
             <p className="text-body-sm text-on-surface-variant">{product.quantity_desc}</p>
           )}
