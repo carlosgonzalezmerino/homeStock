@@ -2,27 +2,30 @@ import logging
 
 import httpx
 
+from app.settings import settings
 from app.sources.base import ProductData
 
 logger = logging.getLogger(__name__)
-
-# NOTE: exact endpoint shape is best-effort and must be verified during
-# implementation (see spec "Open Implementation Notes"). On ANY failure we
-# fall through — so an inexact URL degrades to "miss", never a crash.
-_BASE_URL = "https://tienda.mercadona.es/api/products/{ean}"
 
 
 class MercadonaSource:
     name = "mercadona"
 
     def __init__(
-        self, client: httpx.Client | None = None, timeout: float = 3.0
+        self,
+        client: httpx.Client | None = None,
+        timeout: float | None = None,
     ) -> None:
-        self._client = client or httpx.Client(timeout=timeout)
+        self._client = client
+        self._timeout = timeout if timeout is not None else settings.mercadona_timeout
 
     def lookup(self, ean: str) -> ProductData | None:
         try:
-            response = self._client.get(_BASE_URL.format(ean=ean))
+            id = ean[-5:-1]
+            if self._client is not None:
+                response = self._client.get(settings.mercadona_base_url.format(id=id))
+            else:
+                response = httpx.get(settings.mercadona_base_url.format(id=id), timeout=self._timeout)
             if response.status_code != 200:
                 logger.warning(
                     "mercadona non-200 for %s: %s", ean, response.status_code

@@ -4,14 +4,12 @@ from sqlalchemy import Engine
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
-import os
-
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:////data/homestock.db")
+from app.settings import settings
 
 _engine: Engine | None = None
 
 
-def get_engine(url: str = DATABASE_URL) -> Engine:
+def get_engine(url: str = settings.database_url) -> Engine:
     connect_args = {"check_same_thread": False}
     if url == "sqlite://":
         # In-memory SQLite: use StaticPool so all connections share the same DB
