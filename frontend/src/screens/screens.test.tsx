@@ -611,6 +611,67 @@ describe("Pantry — location tabs", () => {
   });
 });
 
+describe("ManualEntry — location", () => {
+  it("includes location=pantry in inventory POST by default", async () => {
+    const ean = "3333333333333";
+    let inventoryBody: Record<string, unknown> | null = null;
+    server.use(
+      http.post("/api/products", async () =>
+        HttpResponse.json({ ean, name: "Prod", source: "manual" }, { status: 201 })
+      ),
+      http.post("/api/inventory", async ({ request }) => {
+        inventoryBody = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ id: 10, ean, quantity: 1, threshold: 2, unit: "units" }, { status: 201 });
+      }),
+      http.get("/api/inventory", () => HttpResponse.json([])),
+      http.get("/api/shopping-list", () => HttpResponse.json([]))
+    );
+    render(
+      <QueryClientProvider client={makeQC()}>
+        <MemoryRouter initialEntries={[`/scan/${ean}/manual`]}>
+          <Routes>
+            <Route path="/scan/:ean/manual" element={<ManualEntry />} />
+            <Route path="/scan" element={<div>ScanScreen</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: "Prod" } });
+    fireEvent.submit(screen.getByRole("form"));
+    await waitFor(() => expect(inventoryBody).toMatchObject({ location: "pantry" }));
+  });
+
+  it("sends location=freezer when Congelador is selected", async () => {
+    const ean = "4444444444444";
+    let inventoryBody: Record<string, unknown> | null = null;
+    server.use(
+      http.post("/api/products", async () =>
+        HttpResponse.json({ ean, name: "Prod", source: "manual" }, { status: 201 })
+      ),
+      http.post("/api/inventory", async ({ request }) => {
+        inventoryBody = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ id: 11, ean, quantity: 1, threshold: 2, unit: "units" }, { status: 201 });
+      }),
+      http.get("/api/inventory", () => HttpResponse.json([])),
+      http.get("/api/shopping-list", () => HttpResponse.json([]))
+    );
+    render(
+      <QueryClientProvider client={makeQC()}>
+        <MemoryRouter initialEntries={[`/scan/${ean}/manual`]}>
+          <Routes>
+            <Route path="/scan/:ean/manual" element={<ManualEntry />} />
+            <Route path="/scan" element={<div>ScanScreen</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: "Prod" } });
+    fireEvent.click(screen.getByRole("radio", { name: /congelador/i }));
+    fireEvent.submit(screen.getByRole("form"));
+    await waitFor(() => expect(inventoryBody).toMatchObject({ location: "freezer" }));
+  });
+});
+
 // ─── Settings ────────────────────────────────────────────────────────────────
 
 describe("Settings", () => {
