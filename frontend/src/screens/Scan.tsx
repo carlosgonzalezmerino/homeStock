@@ -1,14 +1,14 @@
 import { useRef, useState, useCallback, useEffect, type RefObject } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useScanner } from "@/hooks";
 import { get, ApiError } from "@/api/client";
 import type { ProductOut } from "@/types";
 
 export function Scan() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [manualEan, setManualEan] = useState("");
-  const [capturing, setCapturing] = useState(false);
-  const [captureHint, setCaptureHint] = useState<string | null>(null);
+  const [showAddedToast, setShowAddedToast] = useState(false);
   const resolving = useRef(false);
 
   const handleDetect = useCallback(
@@ -25,6 +25,19 @@ export function Scan() {
 
   const scanner = useScanner(handleDetect);
 
+  // Auto-start camera and show toast when returning from a successful add
+  useEffect(() => {
+    if (location.state?.added) {
+      setShowAddedToast(true);
+      scanner.start();
+      // Clear the state so the toast doesn't reappear on back navigation
+      navigate(".", { state: {}, replace: true });
+      const timer = setTimeout(() => setShowAddedToast(false), 1000);
+      return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Stop camera on unmount
   useEffect(() => () => scanner.stop(), []);
 
@@ -36,19 +49,6 @@ export function Scan() {
     await resolveAndNavigate(ean, navigate);
   }
 
-  async function handleCapture() {
-    setCapturing(true);
-    setCaptureHint(null);
-    const ean = await scanner.detect();
-    if (ean) {
-      scanner.stop();
-      await resolveAndNavigate(ean, navigate);
-    } else {
-      setCaptureHint("No se detectó ningún código — inténtalo de nuevo");
-    }
-    setCapturing(false);
-  }
-
   const isScanning = scanner.state === "scanning";
   const isStarting = scanner.state === "starting";
   const hasError = scanner.state === "error" || !!scanner.error;
@@ -56,6 +56,16 @@ export function Scan() {
   return (
     <div className="flex flex-col items-center gap-stack-md pt-stack-md">
       <h1 className="text-headline-md text-on-surface">Escanear producto</h1>
+
+      {/* Success toast */}
+      {showAddedToast && (
+        <div
+          role="status"
+          className="w-full max-w-sm rounded-lg bg-secondary-container px-4 py-3 text-body-md text-on-secondary-container text-center"
+        >
+          ✓ Producto añadido
+        </div>
+      )}
 
       {/* Camera viewfinder */}
       <div className="relative w-full max-w-sm">
@@ -82,9 +92,7 @@ export function Scan() {
       )}
       {isScanning && (
         <p className="text-body-sm text-on-surface-variant text-center">
-          {scanner.hasBarcodeDetector
-            ? "Apunta al código de barras"
-            : "Encuadra el código y pulsa Capturar"}
+          Apunta al código de barras
         </p>
       )}
       {hasError && (
@@ -101,22 +109,6 @@ export function Scan() {
         >
           Activar cámara
         </button>
-      )}
-
-      {/* Capture button for browsers without BarcodeDetector (iOS < 17.4) */}
-      {isScanning && !scanner.hasBarcodeDetector && (
-        <div className="flex flex-col items-center gap-2">
-          <button
-            onClick={handleCapture}
-            disabled={capturing}
-            className="rounded-full bg-primary px-8 py-4 text-label-lg font-semibold text-on-primary disabled:opacity-50"
-          >
-            {capturing ? "Detectando…" : "Capturar"}
-          </button>
-          {captureHint && (
-            <p className="text-body-sm text-on-surface-variant text-center">{captureHint}</p>
-          )}
-        </div>
       )}
 
       {/* Debug panel — remove once scanner works reliably */}

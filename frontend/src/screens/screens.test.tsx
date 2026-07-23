@@ -376,6 +376,24 @@ describe("Scan", () => {
     fireEvent.submit(screen.getByRole("form"));
     await screen.findByText("ManualEntry");
   });
+
+  it("shows success toast when location.state.added is true", async () => {
+    render(
+      <QueryClientProvider client={makeQC()}>
+        <MemoryRouter initialEntries={[{ pathname: "/scan", state: { added: true } }]}>
+          <Routes>
+            <Route path="/scan" element={<Scan />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    expect(await screen.findByText("✓ Producto añadido")).toBeInTheDocument();
+  });
+
+  it("does not show success toast when location.state.added is absent", () => {
+    wrap(<Scan />, { path: "/scan", initialEntries: ["/scan"] });
+    expect(screen.queryByText("✓ Producto añadido")).not.toBeInTheDocument();
+  });
 });
 
 // ─── ManualEntry ─────────────────────────────────────────────────────────────
