@@ -1,34 +1,21 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useInventory } from "@/hooks";
-import { Card, StatusBadge, LevelBar, Spinner, ErrorState, EmptyState } from "@/components";
+import { useInventory, usePatchInventory } from "@/hooks";
+import { Card, StatusBadge, QuantityStepper, Spinner, ErrorState, EmptyState } from "@/components";
+import type { InventoryWithProductOut } from "@/types";
 
 export function Pantry() {
   const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useInventory();
   const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-
-  const categories = useMemo(() => {
-    const seen = new Set<string>();
-    for (const i of data ?? []) {
-      seen.add(i.product.category ?? "Otros");
-    }
-    return [...seen].sort();
-  }, [data]);
 
   const filtered = useMemo(() => {
-    return (data ?? []).filter((i) => {
-      const matchesSearch =
-        !search ||
-        i.product.name.toLowerCase().includes(search.toLowerCase()) ||
-        (i.product.brand ?? "").toLowerCase().includes(search.toLowerCase());
-      const matchesCategory =
-        !activeCategory ||
-        (i.product.category ?? "Otros") === activeCategory;
-      return matchesSearch && matchesCategory;
-    });
-  }, [data, search, activeCategory]);
+    return (data ?? []).filter((i) =>
+      !search ||
+      i.product.name.toLowerCase().includes(search.toLowerCase()) ||
+      (i.product.brand ?? "").toLowerCase().includes(search.toLowerCase())
+    );
+  }, [data, search]);
 
   if (isLoading) return <Spinner />;
   if (isError) return <ErrorState message="Error al cargar" onRetry={refetch} />;
@@ -44,34 +31,6 @@ export function Pantry() {
         className="w-full rounded-lg border border-outline-variant bg-surface-container px-4 py-3 text-body-lg text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary"
       />
 
-      {categories.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          <button
-            onClick={() => setActiveCategory(null)}
-            className={`shrink-0 rounded-full px-3 py-1 text-label-md transition-colors ${
-              !activeCategory
-                ? "bg-primary-container text-on-primary-container"
-                : "bg-surface-container text-on-surface-variant"
-            }`}
-          >
-            Todos
-          </button>
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat === activeCategory ? null : cat)}
-              className={`shrink-0 rounded-full px-3 py-1 text-label-md transition-colors ${
-                activeCategory === cat
-                  ? "bg-primary-container text-on-primary-container"
-                  : "bg-surface-container text-on-surface-variant"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-      )}
-
       {filtered.length === 0 && (data?.length ?? 0) === 0 ? (
         <EmptyState message="Tu despensa está vacía. Escanea tu primer producto" />
       ) : filtered.length === 0 ? (
@@ -79,35 +38,96 @@ export function Pantry() {
       ) : (
         <div className="space-y-stack-sm">
           {filtered.map((item) => (
-            <Card
+            <PantryItem
               key={item.inventory.ean}
-              accent={item.low ? "tertiary" : undefined}
-              onClick={() => navigate(`/despensa/${item.inventory.ean}`)}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-body-lg text-on-surface truncate">{item.product.name}</p>
-                  {item.product.brand && (
-                    <p className="text-body-sm text-on-surface-variant">{item.product.brand}</p>
-                  )}
-                  {item.product.category && (
-                    <span className="mt-1 inline-block rounded-full bg-surface-container-high px-2 py-0.5 text-label-md text-on-surface-variant">
-                      {item.product.category}
-                    </span>
-                  )}
-                </div>
-                <StatusBadge status={item.inventory.quantity === 0 ? "empty" : item.low ? "low" : "ok"} />
-              </div>
-              <div className="mt-3">
-                <p className="text-label-md text-on-surface-variant mb-1">
-                  {item.inventory.quantity} {item.inventory.unit}
-                </p>
-                <LevelBar quantity={item.inventory.quantity} max={item.inventory.threshold * 2} />
-              </div>
-            </Card>
+              item={item}
+              onNavigate={() => navigate(`/despensa/${item.inventory.ean}`)}
+            />
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+function statusFor(item: InventoryWithProductOut): "ok" | "low" | "empty" {
+  if (item.inventory.quantity === 0) return "empty";
+  if (item.low) return "low";
+  return "ok";
+}
+
+function PantryItem({
+  item,
+  onNavigate,
+}: {
+  item: InventoryWithProductOut;
+  onNavigate: () => void;
+}) {
+  const { product, inventory } = item;
+  const [localQty, setLocalQty] = useState(inventory.quantity);
+  const patch = usePatchInventory();
+
+  function handleQtyChange(newQty: number) {
+    setLocalQty(newQty);
+    patch.mutate(
+      { ean: inventory.ean, body: { quantity: newQty } },
+      {
+        onError: () => setLocalQty(inventory.quantity),
+      }
+    );
+  }
+
+  const status = localQty === 0 ? "empty" : localQty <= inventory.threshold ? "low" : "ok";
+
+  return (
+    <Card>
+      <div className="flex items-start gap-3">
+        {/* Thumbnail */}
+        <button
+          onClick={onNavigate}
+          className="shrink-0 focus:outline-none focus:ring-2 focus:ring-primary rounded-md"
+          aria-label={product.name}
+          type="button"
+        >
+          {product.image_url ? (
+            <img
+              src={product.image_url}
+              alt={product.name}
+              className="h-14 w-14 rounded-md object-contain bg-surface-container-low"
+            />
+          ) : (
+            <span
+              data-testid="img-placeholder"
+              className="material-symbols-outlined flex h-14 w-14 items-center justify-center rounded-md bg-surface-container-low text-on-surface-variant text-3xl"
+            >
+              grocery
+            </span>
+          )}
+        </button>
+
+        {/* Identity + badge */}
+        <button
+          onClick={onNavigate}
+          className="min-w-0 flex-1 text-left focus:outline-none"
+          type="button"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-body-lg font-medium text-on-surface truncate">{product.name}</p>
+              {product.brand && (
+                <p className="text-body-sm text-on-surface-variant truncate">{product.brand}</p>
+              )}
+            </div>
+            <StatusBadge status={status} />
+          </div>
+        </button>
+      </div>
+
+      {/* Stepper inline — bottom right, does not trigger navigation */}
+      <div className="mt-3 flex items-center justify-end gap-2">
+        <span className="text-body-sm text-on-surface-variant">{inventory.unit}</span>
+        <QuantityStepper value={localQty} onChange={handleQtyChange} size="lg" />
+      </div>
+    </Card>
   );
 }

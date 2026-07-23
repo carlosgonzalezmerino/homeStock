@@ -131,18 +131,6 @@ it("shows EmptyState when pantry is empty", async () => {
     await screen.findByText(/despensa está vacía/i);
   });
 
-  it("filters by category chip", async () => {
-    server.use(
-      http.get("/api/inventory", () => HttpResponse.json(inventoryMixed))
-    );
-    wrap(<Pantry />);
-    await screen.findByText("Leche Entera");
-    expect(screen.getByText("Aceite Oliva")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Lácteos" }));
-    expect(screen.getByText("Leche Entera")).toBeInTheDocument();
-    expect(screen.queryByText("Aceite Oliva")).not.toBeInTheDocument();
-  });
-
   it("clicking a row navigates to /despensa/:ean", async () => {
     server.use(
       http.get("/api/inventory", () => HttpResponse.json(inventoryFull))
@@ -157,9 +145,95 @@ it("shows EmptyState when pantry is empty", async () => {
         </MemoryRouter>
       </QueryClientProvider>
     );
-    const row = await screen.findByRole("button", { name: /leche entera/i });
-    fireEvent.click(row);
+    // Two buttons match /leche entera/i: thumbnail and identity. Click the first.
+    const rows = await screen.findAllByRole("button", { name: /leche entera/i });
+    fireEvent.click(rows[0]);
     await screen.findByText("ProductDetail");
+  });
+
+  it("shows product thumbnail when image_url is present", async () => {
+    server.use(
+      http.get("/api/inventory", () =>
+        HttpResponse.json([{
+          inventory: { id: 1, ean: "1234567890123", quantity: 5, threshold: 2, unit: "units" },
+          product: { ean: "1234567890123", name: "Leche Entera", brand: "Hacendado", image_url: "https://example.com/leche.jpg" },
+          low: false,
+        }])
+      )
+    );
+    wrap(<Pantry />);
+    const img = await screen.findByRole("img", { name: /leche entera/i });
+    expect(img).toHaveAttribute("src", "https://example.com/leche.jpg");
+  });
+
+  it("shows placeholder when image_url is missing", async () => {
+    server.use(
+      http.get("/api/inventory", () =>
+        HttpResponse.json([{
+          inventory: { id: 1, ean: "1234567890123", quantity: 5, threshold: 2, unit: "units" },
+          product: { ean: "1234567890123", name: "Leche Entera", brand: "Hacendado" },
+          low: false,
+        }])
+      )
+    );
+    wrap(<Pantry />);
+    await screen.findByText("Leche Entera");
+    expect(screen.queryByRole("img", { name: /leche entera/i })).not.toBeInTheDocument();
+    // placeholder icon rendered
+    expect(document.querySelector("[data-testid='img-placeholder']")).toBeInTheDocument();
+  });
+
+  it("inline stepper PATCHes quantity optimistically", async () => {
+    let patchBody: Record<string, unknown> | null = null;
+    server.use(
+      http.get("/api/inventory", () =>
+        HttpResponse.json([{
+          inventory: { id: 1, ean: "1234567890123", quantity: 5, threshold: 2, unit: "units" },
+          product: { ean: "1234567890123", name: "Leche Entera", brand: "Hacendado" },
+          low: false,
+        }])
+      ),
+      http.patch("/api/inventory/1234567890123", async ({ request }) => {
+        patchBody = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ id: 1, ean: "1234567890123", quantity: 6, threshold: 2, unit: "units" });
+      }),
+      http.get("/api/shopping-list", () => HttpResponse.json([]))
+    );
+    wrap(<Pantry />);
+    await screen.findByText("Leche Entera");
+    // El stepper lg muestra "5" — pulsar ＋
+    const plusButtons = screen.getAllByRole("button", { name: "＋" });
+    fireEvent.click(plusButtons[0]);
+    // Optimistic: valor local sube a 6 inmediatamente
+    await screen.findByText("6");
+    // PATCH enviado al servidor
+    await waitFor(() => expect(patchBody).toMatchObject({ quantity: 6 }));
+  });
+
+  it("stepper click does not navigate to ProductDetail", async () => {
+    server.use(
+      http.get("/api/inventory", () =>
+        HttpResponse.json([{
+          inventory: { id: 1, ean: "1234567890123", quantity: 5, threshold: 2, unit: "units" },
+          product: { ean: "1234567890123", name: "Leche Entera" },
+          low: false,
+        }])
+      )
+    );
+    render(
+      <QueryClientProvider client={makeQC()}>
+        <MemoryRouter initialEntries={["/despensa"]}>
+          <Routes>
+            <Route path="/despensa" element={<Pantry />} />
+            <Route path="/despensa/:ean" element={<div>ProductDetail</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    await screen.findByText("Leche Entera");
+    const plusButtons = screen.getAllByRole("button", { name: "＋" });
+    fireEvent.click(plusButtons[0]);
+    expect(screen.queryByText("ProductDetail")).not.toBeInTheDocument();
   });
 });
 
