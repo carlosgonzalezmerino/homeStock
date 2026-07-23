@@ -11,15 +11,6 @@ export function Dashboard() {
     [data]
   );
 
-  const categories = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const i of data ?? []) {
-      const cat = i.product.category ?? "Otros";
-      counts[cat] = (counts[cat] ?? 0) + 1;
-    }
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  }, [data]);
-
   if (isLoading) return <Spinner />;
   if (isError) return <ErrorState message="Error al cargar" onRetry={refetch} />;
 
@@ -32,22 +23,6 @@ export function Dashboard() {
           <SummaryCard label="Stock bajo" value={lowItems.length} accent />
         </div>
       </section>
-
-      {categories.length > 0 && (
-        <section>
-          <h2 className="text-headline-md text-on-surface mb-stack-sm">Categorías</h2>
-          <div className="flex flex-wrap gap-2">
-            {categories.map(([cat, count]) => (
-              <span
-                key={cat}
-                className="rounded-full bg-secondary-container text-on-secondary-container text-label-md px-3 py-1"
-              >
-                {cat} ({count})
-              </span>
-            ))}
-          </div>
-        </section>
-      )}
 
       <section>
         <h2 className="text-headline-md text-on-surface mb-stack-sm">Alertas de Stock</h2>
