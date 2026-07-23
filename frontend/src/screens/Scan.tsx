@@ -148,6 +148,15 @@ export function Scan() {
           Buscar
         </button>
       </form>
+
+      {/* Add without barcode */}
+      <button
+        onClick={() => navigate("/custom-entry")}
+        className="text-label-lg text-primary underline"
+        type="button"
+      >
+        Añadir sin código
+      </button>
     </div>
   );
 }

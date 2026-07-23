@@ -31,6 +31,7 @@ import { ProductDetail } from "@/screens/ProductDetail";
 import { Scan } from "@/screens/Scan";
 import { ManualEntry } from "@/screens/ManualEntry";
 import { Settings } from "@/screens/Settings";
+import { CustomEntry } from "@/screens/CustomEntry";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -740,5 +741,143 @@ describe("Settings", () => {
   it("renders theme toggle button", () => {
     wrap(<Settings />);
     expect(screen.getByRole("button", { name: /tema/i })).toBeInTheDocument();
+  });
+});
+
+// ─── Scan — custom entry button ─────────────────────────────────────────────
+
+describe("Scan — custom entry button", () => {
+  it("renders 'Añadir sin código' button", () => {
+    wrap(<Scan />, { path: "/scan", initialEntries: ["/scan"] });
+    expect(screen.getByRole("button", { name: /añadir sin código/i })).toBeInTheDocument();
+  });
+
+  it("navigates to /custom-entry on button click", async () => {
+    render(
+      <QueryClientProvider client={makeQC()}>
+        <MemoryRouter initialEntries={["/scan"]}>
+          <Routes>
+            <Route path="/scan" element={<Scan />} />
+            <Route path="/custom-entry" element={<div>CustomEntry</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    fireEvent.click(screen.getByRole("button", { name: /añadir sin código/i }));
+    await screen.findByText("CustomEntry");
+  });
+});
+
+// ─── CustomEntry ─────────────────────────────────────────────────────────────
+
+describe("CustomEntry", () => {
+  it("renders search input on step 1", () => {
+    wrap(<CustomEntry />, { path: "/custom-entry", initialEntries: ["/custom-entry"] });
+    expect(screen.getByRole("searchbox")).toBeInTheDocument();
+  });
+
+  it("shows search results from /api/products", async () => {
+    server.use(
+      http.get("/api/products", ({ request }) => {
+        const q = new URL(request.url).searchParams.get("q") ?? "";
+        if (q === "po") {
+          return HttpResponse.json([
+            { ean: "111", name: "Pollo Asado", source: "manual" },
+          ]);
+        }
+        return HttpResponse.json([]);
+      })
+    );
+    wrap(<CustomEntry />, { path: "/custom-entry", initialEntries: ["/custom-entry"] });
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "po" } });
+    await screen.findByText("Pollo Asado");
+  });
+
+  it("selecting an existing product advances to step 2", async () => {
+    server.use(
+      http.get("/api/products", () =>
+        HttpResponse.json([{ ean: "111", name: "Pollo Asado", source: "manual" }])
+      )
+    );
+    wrap(<CustomEntry />, { path: "/custom-entry", initialEntries: ["/custom-entry"] });
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "po" } });
+    await screen.findByText("Pollo Asado");
+    fireEvent.click(screen.getByText("Pollo Asado"));
+    await screen.findByText(/cantidad/i);
+  });
+
+  it("'Crear nuevo' advances to step 2 with name field", () => {
+    wrap(<CustomEntry />, { path: "/custom-entry", initialEntries: ["/custom-entry"] });
+    fireEvent.click(screen.getByRole("button", { name: /crear nuevo/i }));
+    expect(screen.getByLabelText(/nombre/i)).toBeInTheDocument();
+  });
+
+  it("step 2 defaults to Congelador location", () => {
+    wrap(<CustomEntry />, { path: "/custom-entry", initialEntries: ["/custom-entry"] });
+    fireEvent.click(screen.getByRole("button", { name: /crear nuevo/i }));
+    expect(screen.getByRole("radio", { name: /congelador/i })).toBeChecked();
+  });
+
+  it("submitting existing product POSTs to /api/inventory with location", async () => {
+    let inventoryBody: Record<string, unknown> | null = null;
+    server.use(
+      http.get("/api/products", () =>
+        HttpResponse.json([{ ean: "111", name: "Pollo Asado", source: "manual" }])
+      ),
+      http.post("/api/inventory", async ({ request }) => {
+        inventoryBody = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ id: 5, ean: "111", quantity: 1, threshold: 1, unit: "units" }, { status: 201 });
+      }),
+      http.get("/api/inventory", () => HttpResponse.json([])),
+      http.get("/api/shopping-list", () => HttpResponse.json([]))
+    );
+    render(
+      <QueryClientProvider client={makeQC()}>
+        <MemoryRouter initialEntries={["/custom-entry"]}>
+          <Routes>
+            <Route path="/custom-entry" element={<CustomEntry />} />
+            <Route path="/despensa" element={<div>Pantry</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "po" } });
+    await screen.findByText("Pollo Asado");
+    fireEvent.click(screen.getByText("Pollo Asado"));
+    await screen.findByText(/cantidad/i);
+    fireEvent.submit(screen.getByRole("form"));
+    await waitFor(() => expect(inventoryBody).toMatchObject({ ean: "111", location: "freezer" }));
+  });
+
+  it("submitting new product POSTs to /api/products then /api/inventory", async () => {
+    let productsCalled = false;
+    let inventoryCalled = false;
+    server.use(
+      http.post("/api/products", async () => {
+        productsCalled = true;
+        return HttpResponse.json({ ean: "CUSTOM-XXXXXXXX", name: "Albóndigas", source: "manual" }, { status: 201 });
+      }),
+      http.post("/api/inventory", async () => {
+        inventoryCalled = true;
+        return HttpResponse.json({ id: 6, ean: "CUSTOM-XXXXXXXX", quantity: 2, threshold: 1, unit: "tuppers" }, { status: 201 });
+      }),
+      http.get("/api/inventory", () => HttpResponse.json([])),
+      http.get("/api/shopping-list", () => HttpResponse.json([]))
+    );
+    render(
+      <QueryClientProvider client={makeQC()}>
+        <MemoryRouter initialEntries={["/custom-entry"]}>
+          <Routes>
+            <Route path="/custom-entry" element={<CustomEntry />} />
+            <Route path="/despensa" element={<div>Pantry</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    fireEvent.click(screen.getByRole("button", { name: /crear nuevo/i }));
+    fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: "Albóndigas" } });
+    fireEvent.submit(screen.getByRole("form"));
+    await waitFor(() => expect(productsCalled).toBe(true));
+    await waitFor(() => expect(inventoryCalled).toBe(true));
   });
 });
