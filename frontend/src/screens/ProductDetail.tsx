@@ -157,7 +157,7 @@ export function ProductDetail() {
         <Card>
           <p className="text-label-md text-on-surface-variant mb-1">Umbral de alerta</p>
           <p className="text-body-sm text-on-surface-variant mb-stack-sm">
-            Recibirás alerta cuando la cantidad baje de este valor
+            Recibirás alerta cuando la cantidad sea igual o inferior a este valor
           </p>
           <div className="flex items-center justify-between gap-4">
             <QuantityStepper
