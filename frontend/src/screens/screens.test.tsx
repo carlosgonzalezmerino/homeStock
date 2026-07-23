@@ -171,7 +171,7 @@ describe("ProductDetail", () => {
     wrap(<ProductDetail />, { path: "/scan/:ean", initialEntries: [`/scan/${ean}`] });
     await screen.findByText("Leche Entera");
     expect(screen.getByText("5")).toBeInTheDocument();
-    expect(screen.getByText("Actualizar")).toBeInTheDocument();
+    expect(screen.getByText("Actualizar cantidad")).toBeInTheDocument();
   });
 
   it("starts stepper at 1 for untracked item", async () => {
@@ -203,10 +203,12 @@ describe("ProductDetail", () => {
     );
     wrap(<ProductDetail />, { path: "/scan/:ean", initialEntries: [`/scan/${ean}`] });
     await screen.findByText("Leche Entera");
-    const minus = screen.getByRole("button", { name: "−" });
+    // Target the quantity card's − button (first stepper)
+    const qtyCard = screen.getByText("Cantidad actual").closest("div")!;
+    const minus = qtyCard.querySelector("button[aria-label='−']") as HTMLElement;
     for (let i = 0; i < 5; i++) fireEvent.click(minus);
     expect(screen.getByText("0")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Actualizar"));
+    fireEvent.click(screen.getByText("Actualizar cantidad"));
     await waitFor(() => expect(patchCalled).toBe(true));
   });
 
@@ -240,6 +242,45 @@ describe("ProductDetail", () => {
     await screen.findByText("Leche Entera");
     expect(screen.queryByText("Calorías")).not.toBeInTheDocument();
     expect(screen.queryByText(/nutricional/i)).not.toBeInTheDocument();
+  });
+
+  it("shows threshold card for tracked item and PATCHes on save", async () => {
+    let patchBody: Record<string, unknown> | null = null;
+    server.use(
+      http.get(`/api/resolve/${ean}`, () =>
+        HttpResponse.json({ ean, name: "Leche Entera", source: "off" })
+      ),
+      http.get("/api/inventory", () => HttpResponse.json(inventoryFull)),
+      http.patch(`/api/inventory/${ean}`, async ({ request }) => {
+        patchBody = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ id: 1, ean, quantity: 5, threshold: patchBody.threshold as number, unit: "units" });
+      }),
+      http.get("/api/shopping-list", () => HttpResponse.json([]))
+    );
+    wrap(<ProductDetail />, { path: "/scan/:ean", initialEntries: [`/scan/${ean}`] });
+    await screen.findByText("Umbral de alerta");
+    // Guardar disabled until changed
+    const saveBtn = screen.getByRole("button", { name: "Guardar" });
+    expect(saveBtn).toBeDisabled();
+    // Increment threshold — find the ＋ button inside the threshold card section
+    const thresholdSection = screen.getByText("Umbral de alerta").closest("div")!;
+    const plus = thresholdSection.querySelector("button[aria-label='＋']") as HTMLElement;
+    fireEvent.click(plus);
+    expect(saveBtn).not.toBeDisabled();
+    fireEvent.click(saveBtn);
+    await waitFor(() => expect(patchBody).toMatchObject({ threshold: 3 }));
+  });
+
+  it("hides threshold card for untracked item", async () => {
+    server.use(
+      http.get(`/api/resolve/${ean}`, () =>
+        HttpResponse.json({ ean, name: "Leche Entera", source: "off" })
+      ),
+      http.get("/api/inventory", () => HttpResponse.json([]))
+    );
+    wrap(<ProductDetail />, { path: "/scan/:ean", initialEntries: [`/scan/${ean}`] });
+    await screen.findByText("Leche Entera");
+    expect(screen.queryByText("Umbral de alerta")).not.toBeInTheDocument();
   });
 
   it("DELETE when 'Quitar de la despensa' is clicked", async () => {

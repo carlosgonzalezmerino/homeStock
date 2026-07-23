@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useResolve, useInventory, usePatchInventory, useAddInventory, useDeleteInventory } from "@/hooks";
 import { Card, Button, QuantityStepper, Spinner, ErrorState } from "@/components";
@@ -67,6 +67,14 @@ export function ProductDetail() {
   const [qty, setQty] = useState<number | null>(null);
   const currentQty = qty ?? initialQty;
 
+  const [threshold, setThreshold] = useState<number>(tracked?.inventory.threshold ?? 2);
+  const [thresholdDirty, setThresholdDirty] = useState(false);
+
+  // Sync once inventory data arrives (tracked starts undefined)
+  useEffect(() => {
+    if (tracked && !thresholdDirty) setThreshold(tracked.inventory.threshold);
+  }, [tracked?.inventory.threshold]);
+
   const patch = usePatchInventory();
   const add = useAddInventory();
   const remove = useDeleteInventory();
@@ -90,6 +98,13 @@ export function ProductDetail() {
 
   function handleDelete() {
     remove.mutate(ean, { onSuccess: () => navigate(backPath) });
+  }
+
+  function handleThreshold() {
+    patch.mutate(
+      { ean, body: { threshold } },
+      { onSuccess: () => setThresholdDirty(false) }
+    );
   }
 
   return (
@@ -138,9 +153,30 @@ export function ProductDetail() {
         <QuantityStepper value={currentQty} onChange={setQty} />
       </Card>
 
+      {tracked && (
+        <Card>
+          <p className="text-label-md text-on-surface-variant mb-1">Umbral de alerta</p>
+          <p className="text-body-sm text-on-surface-variant mb-stack-sm">
+            Recibirás alerta cuando la cantidad baje de este valor
+          </p>
+          <div className="flex items-center justify-between gap-4">
+            <QuantityStepper
+              value={threshold}
+              onChange={(n) => { setThreshold(n); setThresholdDirty(true); }}
+            />
+            <Button
+              onClick={handleThreshold}
+              disabled={!thresholdDirty || patch.isPending}
+            >
+              Guardar
+            </Button>
+          </div>
+        </Card>
+      )}
+
       <div className="flex flex-col gap-3">
         <Button onClick={handleUpdate} disabled={patch.isPending || add.isPending}>
-          {tracked ? "Actualizar" : "Añadir a mi despensa"}
+          {tracked ? "Actualizar cantidad" : "Añadir a mi despensa"}
         </Button>
         {tracked && (
           <Button variant="ghost" onClick={handleDelete} disabled={remove.isPending}>
