@@ -1,17 +1,24 @@
 import { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { useInventory } from "@/hooks";
 import { Card, StatusBadge, LevelBar, Spinner, ErrorState, EmptyState } from "@/components";
 import type { InventoryWithProductOut } from "@/types";
 
 export function Dashboard() {
-  const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useInventory();
 
   const lowItems = useMemo(
     () => (data ?? []).filter((i) => i.low),
     [data]
   );
+
+  const categories = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const i of data ?? []) {
+      const cat = i.product.category ?? "Otros";
+      counts[cat] = (counts[cat] ?? 0) + 1;
+    }
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [data]);
 
   if (isLoading) return <Spinner />;
   if (isError) return <ErrorState message="Error al cargar" onRetry={refetch} />;
@@ -26,14 +33,30 @@ export function Dashboard() {
         </div>
       </section>
 
-<section>
+      {categories.length > 0 && (
+        <section>
+          <h2 className="text-headline-md text-on-surface mb-stack-sm">Categorías</h2>
+          <div className="flex flex-wrap gap-2">
+            {categories.map(([cat, count]) => (
+              <span
+                key={cat}
+                className="rounded-full bg-secondary-container text-on-secondary-container text-label-md px-3 py-1"
+              >
+                {cat} ({count})
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section>
         <h2 className="text-headline-md text-on-surface mb-stack-sm">Alertas de Stock</h2>
         {lowItems.length === 0 ? (
           <EmptyState message="Sin alertas de stock" />
         ) : (
           <div className="space-y-stack-sm">
             {lowItems.map((item) => (
-              <LowStockCard key={item.inventory.ean} item={item} onClick={() => navigate(`/despensa/${item.inventory.ean}`)} />
+              <LowStockCard key={item.inventory.ean} item={item} />
             ))}
           </div>
         )}
@@ -51,10 +74,10 @@ function SummaryCard({ label, value, accent }: { label: string; value: number; a
   );
 }
 
-function LowStockCard({ item, onClick }: { item: InventoryWithProductOut; onClick: () => void }) {
+function LowStockCard({ item }: { item: InventoryWithProductOut }) {
   const { product, inventory } = item;
   return (
-    <Card accent="tertiary" onClick={onClick}>
+    <Card accent="tertiary">
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-body-lg text-on-surface truncate">{product.name}</p>
