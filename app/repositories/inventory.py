@@ -21,7 +21,7 @@ class InventoryRepository:
         return list(
             self._session.exec(
                 select(InventoryItem).where(
-                    InventoryItem.quantity <= InventoryItem.threshold
+                    InventoryItem.quantity < InventoryItem.threshold
                 )
             ).all()
         )

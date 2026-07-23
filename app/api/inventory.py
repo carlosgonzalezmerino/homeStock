@@ -27,7 +27,7 @@ def list_inventory(
         InventoryWithProductOut(
             inventory=InventoryOut.model_validate(item),
             product=ProductOut.model_validate(product),
-            low=item.quantity <= item.threshold,
+            low=item.quantity < item.threshold,
         )
         for item, product in rows
     ]

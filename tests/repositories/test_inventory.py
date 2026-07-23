@@ -15,13 +15,13 @@ def _repo_with_products() -> InventoryRepository:
     return InventoryRepository(session)
 
 
-def test_list_low_uses_less_than_or_equal() -> None:
+def test_list_low_uses_strict_less_than() -> None:
     repo = _repo_with_products()
     repo.create(InventoryItem(ean="a", quantity=5, threshold=2))  # ok
-    repo.create(InventoryItem(ean="b", quantity=2, threshold=2))  # low (==)
+    repo.create(InventoryItem(ean="b", quantity=2, threshold=2))  # ok (==, not low)
     repo.create(InventoryItem(ean="c", quantity=1, threshold=2))  # low (<)
     low_eans = {item.ean for item in repo.list_low()}
-    assert low_eans == {"b", "c"}
+    assert low_eans == {"c"}
 
 
 def test_delete_removes_row() -> None:

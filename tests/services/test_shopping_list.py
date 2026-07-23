@@ -27,20 +27,17 @@ def test_shopping_list_returns_only_low_with_product_info() -> None:
     assert item.quantity == 1
 
 
-def test_shopping_list_includes_item_at_threshold() -> None:
-    """Item AT threshold (quantity == threshold) must appear in the list."""
+def test_shopping_list_excludes_item_at_threshold() -> None:
+    """Item AT threshold (quantity == threshold) must NOT appear in the list."""
     engine = get_engine("sqlite://")
     create_db_and_tables(engine)
     session = Session(engine)
     session.add(Product(ean="bread", name="Bread", source="manual"))
-    session.add(InventoryItem(ean="bread", quantity=2, threshold=2))  # at threshold
+    session.add(InventoryItem(ean="bread", quantity=2, threshold=2))  # at threshold, not low
     session.commit()
 
     service = ShoppingListService(
         InventoryRepository(session), ProductRepository(session)
     )
     rows = service.items()
-    assert len(rows) == 1
-    item, product = rows[0]
-    assert product.name == "Bread"
-    assert item.quantity == 2
+    assert len(rows) == 0
