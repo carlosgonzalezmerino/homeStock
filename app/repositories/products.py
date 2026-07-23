@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.models import Product
 from app.sources.base import ProductData
@@ -62,3 +62,16 @@ class ProductRepository:
         self._session.commit()
         self._session.refresh(product)
         return product
+
+    def search(self, q: str, limit: int = 20) -> list[Product]:
+        if not q:
+            return []
+        pattern = f"%{q}%"
+        return list(
+            self._session.exec(
+                select(Product).where(
+                    (col(Product.name).ilike(pattern))
+                    | (col(Product.brand).ilike(pattern))
+                ).limit(limit)
+            ).all()
+        )

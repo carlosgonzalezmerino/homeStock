@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.api.deps import get_product_repo
 from app.models import Product
@@ -6,6 +6,14 @@ from app.repositories.products import ProductRepository
 from app.schemas import ProductCreate, ProductOut, ProductPatch
 
 router = APIRouter(prefix="/api/products", tags=["products"])
+
+
+@router.get("", response_model=list[ProductOut])
+def search_products(
+    q: str = Query(default="", max_length=100),
+    repo: ProductRepository = Depends(get_product_repo),
+) -> list[Product]:
+    return repo.search(q)
 
 
 @router.post("", response_model=ProductOut, status_code=201)
