@@ -135,6 +135,25 @@ describe("Pantry", () => {
     wrap(<Pantry />);
     await screen.findByText(/despensa está vacía/i);
   });
+
+  it("clicking a row navigates to /despensa/:ean", async () => {
+    server.use(
+      http.get("/api/inventory", () => HttpResponse.json(inventoryFull))
+    );
+    render(
+      <QueryClientProvider client={makeQC()}>
+        <MemoryRouter initialEntries={["/despensa"]}>
+          <Routes>
+            <Route path="/despensa" element={<Pantry />} />
+            <Route path="/despensa/:ean" element={<div>ProductDetail</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    const row = await screen.findByRole("button", { name: /leche entera/i });
+    fireEvent.click(row);
+    await screen.findByText("ProductDetail");
+  });
 });
 
 // ─── ProductDetail ──────────────────────────────────────────────────────────
@@ -189,6 +208,38 @@ describe("ProductDetail", () => {
     expect(screen.getByText("0")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Actualizar"));
     await waitFor(() => expect(patchCalled).toBe(true));
+  });
+
+  it("shows macros when product has nutrition data", async () => {
+    server.use(
+      http.get(`/api/resolve/${ean}`, () =>
+        HttpResponse.json({
+          ean, name: "Leche Entera", source: "off",
+          kcal_per_100g: 65, proteins_per_100g: 3.2, carbs_per_100g: 4.8,
+          fat_per_100g: 3.6, sugars_per_100g: 4.7,
+        })
+      ),
+      http.get("/api/inventory", () => HttpResponse.json(inventoryFull))
+    );
+    wrap(<ProductDetail />, { path: "/scan/:ean", initialEntries: [`/scan/${ean}`] });
+    await screen.findByText("Leche Entera");
+    expect(screen.getByText("Calorías")).toBeInTheDocument();
+    expect(screen.getByText("65.0 kcal")).toBeInTheDocument();
+    expect(screen.getByText("Proteínas")).toBeInTheDocument();
+    expect(screen.getByText("3.2 g")).toBeInTheDocument();
+  });
+
+  it("hides macros section when product has no nutrition data", async () => {
+    server.use(
+      http.get(`/api/resolve/${ean}`, () =>
+        HttpResponse.json({ ean, name: "Leche Entera", source: "off" })
+      ),
+      http.get("/api/inventory", () => HttpResponse.json(inventoryFull))
+    );
+    wrap(<ProductDetail />, { path: "/scan/:ean", initialEntries: [`/scan/${ean}`] });
+    await screen.findByText("Leche Entera");
+    expect(screen.queryByText("Calorías")).not.toBeInTheDocument();
+    expect(screen.queryByText(/nutricional/i)).not.toBeInTheDocument();
   });
 
   it("DELETE when 'Quitar de la despensa' is clicked", async () => {

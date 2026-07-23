@@ -15,6 +15,7 @@ export default function App() {
             <Route element={<AppShell />}>
               <Route index element={<Dashboard />} />
               <Route path="despensa" element={<Pantry />} />
+              <Route path="despensa/:ean" element={<ProductDetail />} />
               <Route path="scan" element={<Scan />} />
               <Route path="scan/:ean" element={<ProductDetail />} />
               <Route path="scan/:ean/manual" element={<ManualEntry />} />

@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useInventory } from "@/hooks";
 import { Card, StatusBadge, LevelBar, Spinner, ErrorState, EmptyState } from "@/components";
 
 export function Pantry() {
+  const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useInventory();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -77,7 +79,11 @@ export function Pantry() {
       ) : (
         <div className="space-y-stack-sm">
           {filtered.map((item) => (
-            <Card key={item.inventory.ean} accent={item.low ? "tertiary" : undefined}>
+            <Card
+              key={item.inventory.ean}
+              accent={item.low ? "tertiary" : undefined}
+              onClick={() => navigate(`/despensa/${item.inventory.ean}`)}
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-body-lg text-on-surface truncate">{item.product.name}</p>
