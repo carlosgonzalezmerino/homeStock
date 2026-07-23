@@ -111,6 +111,13 @@ describe("QuantityStepper", () => {
     fireEvent.click(screen.getByRole("button", { name: "−" }));
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  it("applies lg size classes when size='lg'", () => {
+    const { container } = render(<QuantityStepper value={3} onChange={vi.fn()} size="lg" />);
+    const buttons = container.querySelectorAll("button");
+    expect(buttons[0]).toHaveClass("h-12");
+    expect(buttons[1]).toHaveClass("h-12");
+  });
 });
 
 // ── Button ────────────────────────────────────────────────────────────────────
