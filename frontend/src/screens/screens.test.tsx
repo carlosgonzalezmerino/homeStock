@@ -8,9 +8,14 @@ import type { ReactNode } from "react";
 
 // Hoisted mocks — must be before any screen imports
 vi.mock("@/hooks/useScanner", () => ({
-  useScanner: (_onDetect: (ean: string) => void) => ({
+  useScanner: () => ({
     ref: { current: null },
+    state: "error" as const,
     error: "Camera not available in test",
+    hasBarcodeDetector: false,
+    start: vi.fn(),
+    stop: vi.fn(),
+    detect: vi.fn().mockResolvedValue(null),
   }),
 }));
 
