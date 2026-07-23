@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useResolve, useInventory, usePatchInventory, useAddInventory, useDeleteInventory } from "@/hooks";
 import { Card, Button, QuantityStepper, Spinner, ErrorState } from "@/components";
 import type { ProductOut } from "@/types";
@@ -50,10 +50,6 @@ function MacrosCard({ product }: { product: ProductOut }) {
 export function ProductDetail() {
   const { ean = "" } = useParams<{ ean: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const fromDespensa = location.pathname.startsWith("/despensa");
-  const backPath = fromDespensa ? "/despensa" : "/despensa";
 
   const { data: product, isLoading: productLoading, isError: productError } = useResolve(ean);
   const { data: inventory } = useInventory();
@@ -86,18 +82,18 @@ export function ProductDetail() {
     if (tracked) {
       patch.mutate(
         { ean, body: { quantity: currentQty } },
-        { onSuccess: () => navigate(backPath) }
+        { onSuccess: () => navigate("/scan", { state: { added: true }, replace: true }) }
       );
     } else {
       add.mutate(
         { ean, quantity: currentQty, threshold: 2, unit: "units" },
-        { onSuccess: () => navigate(backPath) }
+        { onSuccess: () => navigate("/scan", { state: { added: true }, replace: true }) }
       );
     }
   }
 
   function handleDelete() {
-    remove.mutate(ean, { onSuccess: () => navigate(backPath) });
+    remove.mutate(ean, { onSuccess: () => navigate("/despensa") });
   }
 
   function handleThreshold() {

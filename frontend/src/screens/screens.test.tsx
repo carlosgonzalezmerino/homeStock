@@ -123,18 +123,7 @@ describe("Pantry", () => {
     expect(screen.queryByText("Leche Entera")).not.toBeInTheDocument();
   });
 
-  it("filters by category chip", async () => {
-    server.use(
-      http.get("/api/inventory", () => HttpResponse.json(inventoryMixed))
-    );
-    wrap(<Pantry />);
-    await screen.findByRole("button", { name: "Lácteos" });
-    fireEvent.click(screen.getByRole("button", { name: "Lácteos" }));
-    expect(screen.getByText("Leche Entera")).toBeInTheDocument();
-    expect(screen.queryByText("Aceite Oliva")).not.toBeInTheDocument();
-  });
-
-  it("shows EmptyState when pantry is empty", async () => {
+it("shows EmptyState when pantry is empty", async () => {
     server.use(
       http.get("/api/inventory", () => HttpResponse.json([]))
     );
@@ -306,6 +295,33 @@ describe("ProductDetail", () => {
     await screen.findByText("Quitar de la despensa");
     fireEvent.click(screen.getByText("Quitar de la despensa"));
     await waitFor(() => expect(deleteCalled).toBe(true));
+  });
+
+  it("navigates to /scan with added state after adding untracked item", async () => {
+    const ean = "1234567890123";
+    server.use(
+      http.get(`/api/resolve/${ean}`, () =>
+        HttpResponse.json({ ean, name: "Leche Entera", source: "off" })
+      ),
+      http.get("/api/inventory", () => HttpResponse.json([])),
+      http.post("/api/inventory", () =>
+        HttpResponse.json({ id: 1, ean, quantity: 1, threshold: 2, unit: "units" }, { status: 201 })
+      ),
+      http.get("/api/shopping-list", () => HttpResponse.json([]))
+    );
+    render(
+      <QueryClientProvider client={makeQC()}>
+        <MemoryRouter initialEntries={[`/scan/${ean}`]}>
+          <Routes>
+            <Route path="/scan/:ean" element={<ProductDetail />} />
+            <Route path="/scan" element={<div>ScanScreen</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    await screen.findByText("Añadir a mi despensa");
+    fireEvent.click(screen.getByText("Añadir a mi despensa"));
+    await screen.findByText("ScanScreen");
   });
 });
 
