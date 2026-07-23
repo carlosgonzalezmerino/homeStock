@@ -131,6 +131,18 @@ it("shows EmptyState when pantry is empty", async () => {
     await screen.findByText(/despensa está vacía/i);
   });
 
+  it("filters by category chip", async () => {
+    server.use(
+      http.get("/api/inventory", () => HttpResponse.json(inventoryMixed))
+    );
+    wrap(<Pantry />);
+    await screen.findByText("Leche Entera");
+    expect(screen.getByText("Aceite Oliva")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Lácteos" }));
+    expect(screen.getByText("Leche Entera")).toBeInTheDocument();
+    expect(screen.queryByText("Aceite Oliva")).not.toBeInTheDocument();
+  });
+
   it("clicking a row navigates to /despensa/:ean", async () => {
     server.use(
       http.get("/api/inventory", () => HttpResponse.json(inventoryFull))
@@ -321,6 +333,33 @@ describe("ProductDetail", () => {
     );
     await screen.findByText("Añadir a mi despensa");
     fireEvent.click(screen.getByText("Añadir a mi despensa"));
+    await screen.findByText("ScanScreen");
+  });
+
+  it("navigates to /scan with added state after updating tracked item", async () => {
+    const ean = "1234567890123";
+    server.use(
+      http.get(`/api/resolve/${ean}`, () =>
+        HttpResponse.json({ ean, name: "Leche Entera", source: "off" })
+      ),
+      http.get("/api/inventory", () => HttpResponse.json(inventoryFull)),
+      http.patch(`/api/inventory/${ean}`, () =>
+        HttpResponse.json({ id: 1, ean, quantity: 5, threshold: 2, unit: "units" })
+      ),
+      http.get("/api/shopping-list", () => HttpResponse.json([]))
+    );
+    render(
+      <QueryClientProvider client={makeQC()}>
+        <MemoryRouter initialEntries={[`/scan/${ean}`]}>
+          <Routes>
+            <Route path="/scan/:ean" element={<ProductDetail />} />
+            <Route path="/scan" element={<div>ScanScreen</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    await screen.findByText("Actualizar cantidad");
+    fireEvent.click(screen.getByText("Actualizar cantidad"));
     await screen.findByText("ScanScreen");
   });
 });
