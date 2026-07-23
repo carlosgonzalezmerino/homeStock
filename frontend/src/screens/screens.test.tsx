@@ -555,6 +555,62 @@ describe("ManualEntry", () => {
   });
 });
 
+// ─── Pantry — location tabs ──────────────────────────────────────────────────
+
+describe("Pantry — location tabs", () => {
+  const inventoryPantry = [
+    {
+      inventory: { id: 1, ean: "111", quantity: 3, threshold: 1, unit: "units", location: null },
+      product: { ean: "111", name: "Leche", source: "manual" },
+      low: false,
+    },
+  ];
+  const inventoryFreezer = [
+    {
+      inventory: { id: 2, ean: "222", quantity: 2, threshold: 1, unit: "units", location: "freezer" },
+      product: { ean: "222", name: "Pollo Congelado", source: "manual" },
+      low: false,
+    },
+  ];
+  const inventoryBoth = [...inventoryPantry, ...inventoryFreezer];
+
+  it("shows Despensa tab active by default and filters pantry items", async () => {
+    server.use(http.get("/api/inventory", () => HttpResponse.json(inventoryBoth)));
+    wrap(<Pantry />);
+    await screen.findByText("Leche");
+    expect(screen.queryByText("Pollo Congelado")).not.toBeInTheDocument();
+  });
+
+  it("switching to Congelador tab shows freezer items only", async () => {
+    server.use(http.get("/api/inventory", () => HttpResponse.json(inventoryBoth)));
+    wrap(<Pantry />);
+    await screen.findByText("Leche");
+    fireEvent.click(screen.getByRole("tab", { name: /congelador/i }));
+    await screen.findByText("Pollo Congelado");
+    expect(screen.queryByText("Leche")).not.toBeInTheDocument();
+  });
+
+  it("shows freezer empty state when no freezer items", async () => {
+    server.use(http.get("/api/inventory", () => HttpResponse.json(inventoryPantry)));
+    wrap(<Pantry />);
+    await screen.findByText("Leche");
+    fireEvent.click(screen.getByRole("tab", { name: /congelador/i }));
+    await screen.findByText(/congelador está vacío/i);
+  });
+
+  it("treats location=pantry same as location=null (despensa tab)", async () => {
+    const explicit = [{
+      inventory: { id: 3, ean: "333", quantity: 1, threshold: 1, unit: "units", location: "pantry" },
+      product: { ean: "333", name: "Yogur", source: "manual" },
+      low: false,
+    }];
+    server.use(http.get("/api/inventory", () => HttpResponse.json(explicit)));
+    wrap(<Pantry />);
+    await screen.findByText("Yogur");
+    expect(screen.queryByText("Yogur")).toBeInTheDocument();
+  });
+});
+
 // ─── Settings ────────────────────────────────────────────────────────────────
 
 describe("Settings", () => {

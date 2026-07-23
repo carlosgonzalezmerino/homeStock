@@ -2,26 +2,63 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useInventory, usePatchInventory } from "@/hooks";
 import { Card, StatusBadge, QuantityStepper, Spinner, ErrorState, EmptyState } from "@/components";
-import type { InventoryWithProductOut } from "@/types";
+import type { InventoryWithProductOut, Location } from "@/types";
+
+function isPantry(location: string | null | undefined): boolean {
+  return location == null || location === "pantry";
+}
 
 export function Pantry() {
   const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useInventory();
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<Location>("pantry");
+
+  const tabFiltered = useMemo(() => {
+    return (data ?? []).filter((i) =>
+      activeTab === "pantry"
+        ? isPantry(i.inventory.location)
+        : i.inventory.location === "freezer"
+    );
+  }, [data, activeTab]);
 
   const filtered = useMemo(() => {
-    return (data ?? []).filter((i) =>
+    return tabFiltered.filter((i) =>
       !search ||
       i.product.name.toLowerCase().includes(search.toLowerCase()) ||
       (i.product.brand ?? "").toLowerCase().includes(search.toLowerCase())
     );
-  }, [data, search]);
+  }, [tabFiltered, search]);
 
   if (isLoading) return <Spinner />;
   if (isError) return <ErrorState message="Error al cargar" onRetry={refetch} />;
 
+  const emptyMessage =
+    activeTab === "pantry"
+      ? "Tu despensa está vacía. Escanea tu primer producto"
+      : "Tu congelador está vacío. Añade productos con 'Añadir sin código'";
+
   return (
     <div className="space-y-stack-md pt-stack-md">
+      {/* Location tabs */}
+      <div role="tablist" className="flex gap-1 rounded-lg bg-surface-container p-1">
+        {(["pantry", "freezer"] as Location[]).map((tab) => (
+          <button
+            key={tab}
+            role="tab"
+            aria-selected={activeTab === tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 rounded-md py-2 text-label-lg font-medium transition-colors ${
+              activeTab === tab
+                ? "bg-primary text-on-primary"
+                : "text-on-surface-variant"
+            }`}
+          >
+            {tab === "pantry" ? "Despensa" : "Congelador"}
+          </button>
+        ))}
+      </div>
+
       <input
         role="searchbox"
         type="search"
@@ -31,8 +68,8 @@ export function Pantry() {
         className="w-full rounded-lg border border-outline-variant bg-surface-container px-4 py-3 text-body-lg text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary"
       />
 
-      {filtered.length === 0 && (data?.length ?? 0) === 0 ? (
-        <EmptyState message="Tu despensa está vacía. Escanea tu primer producto" />
+      {filtered.length === 0 && tabFiltered.length === 0 ? (
+        <EmptyState message={emptyMessage} />
       ) : filtered.length === 0 ? (
         <EmptyState message="Sin resultados" />
       ) : (
@@ -76,7 +113,6 @@ function PantryItem({
   return (
     <Card>
       <div className="flex items-start gap-3">
-        {/* Thumbnail */}
         <button
           onClick={onNavigate}
           className="shrink-0 focus:outline-none focus:ring-2 focus:ring-primary rounded-md"
@@ -94,12 +130,11 @@ function PantryItem({
               data-testid="img-placeholder"
               className="material-symbols-outlined flex h-14 w-14 items-center justify-center rounded-md bg-surface-container-low text-on-surface-variant text-3xl"
             >
-              grocery
+              {inventory.location === "freezer" ? "ac_unit" : "grocery"}
             </span>
           )}
         </button>
 
-        {/* Identity + badge */}
         <button
           onClick={onNavigate}
           className="min-w-0 flex-1 text-left focus:outline-none"
@@ -117,7 +152,6 @@ function PantryItem({
         </button>
       </div>
 
-      {/* Stepper inline — bottom right, does not trigger navigation */}
       <div className="mt-3 flex items-center justify-end gap-2">
         <span className="text-body-sm text-on-surface-variant">{inventory.unit}</span>
         <QuantityStepper value={localQty} onChange={handleQtyChange} size="lg" />
