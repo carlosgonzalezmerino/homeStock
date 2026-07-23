@@ -37,7 +37,7 @@ export function ManualEntry() {
       threshold: parseInt(values.threshold, 10),
       unit: values.unit || "units",
     });
-    navigate("/despensa");
+    navigate("/scan", { state: { added: true }, replace: true });
   }
 
   const isPending = createProduct.isPending || addInventory.isPending;

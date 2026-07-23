@@ -411,7 +411,7 @@ describe("ManualEntry", () => {
         <MemoryRouter initialEntries={[`/scan/${ean}/manual`]}>
           <Routes>
             <Route path="/scan/:ean/manual" element={<ManualEntry />} />
-            <Route path="/despensa" element={<div>Pantry</div>} />
+            <Route path="/scan" element={<div>ScanScreen</div>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>
@@ -420,7 +420,7 @@ describe("ManualEntry", () => {
     fireEvent.submit(screen.getByRole("form"));
     await waitFor(() => expect(productsCalled).toBe(true));
     await waitFor(() => expect(inventoryCalled).toBe(true));
-    await screen.findByText("Pantry");
+    await screen.findByText("ScanScreen");
   });
 });
 
