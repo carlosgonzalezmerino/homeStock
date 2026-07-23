@@ -8,3 +8,4 @@ export {
   useCreateProduct,
 } from "./useMutations";
 export { useScanner } from "./useScanner";
+export { useSearchProducts } from "./useSearchProducts";

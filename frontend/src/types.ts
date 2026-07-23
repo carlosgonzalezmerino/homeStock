@@ -68,3 +68,5 @@ export interface ShoppingListItemOut {
   unit: string;
   image_url?: string | null;
 }
+
+export type Location = "pantry" | "freezer";
