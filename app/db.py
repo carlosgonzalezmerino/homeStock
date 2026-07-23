@@ -4,7 +4,9 @@ from sqlalchemy import Engine
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
-DATABASE_URL = "sqlite:///homestock.db"
+import os
+
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:////data/homestock.db")
 
 _engine: Engine | None = None
 
@@ -30,7 +32,12 @@ def set_engine(engine: Engine) -> None:
     _engine = engine
 
 
+def is_engine_set() -> bool:
+    return _engine is not None
+
+
 def get_session() -> Iterator[Session]:
-    assert _engine is not None, "engine not initialized; call set_engine()"
+    if _engine is None:
+        raise RuntimeError("engine not initialized; call set_engine()")
     with Session(_engine) as session:
         yield session

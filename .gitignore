@@ -9,3 +9,9 @@ build/
 .ruff_cache/
 homestock.db
 data/*.csv
+
+# frontend
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+frontend/*.d.ts

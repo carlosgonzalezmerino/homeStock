@@ -1,0 +1,20 @@
+services:
+  homestock:
+    build: .
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=sqlite:////data/homestock.db
+    volumes:
+      - homestock-data:/data
+    ports:
+      - "8000:8000"
+    labels:
+      # Traefik labels for Dokploy — adjust domain to yours
+      - "traefik.enable=true"
+      - "traefik.http.routers.homestock.rule=Host(`homestock.yourdomain.com`)"
+      - "traefik.http.routers.homestock.entrypoints=websecure"
+      - "traefik.http.routers.homestock.tls.certresolver=letsencrypt"
+      - "traefik.http.services.homestock.loadbalancer.server.port=8000"
+
+volumes:
+  homestock-data:
