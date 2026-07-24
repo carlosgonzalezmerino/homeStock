@@ -66,13 +66,10 @@ export function useScanner(onDetect?: (ean: string) => void): UseScannerReturn {
   const rafRef = useRef<number>(0);
   const activeRef = useRef(false);
   const zxingRef = useRef<BrowserMultiFormatReader | null>(null);
-  const zxingControlsRef = useRef<{ stop: () => void } | null>(null);
 
   const stop = useCallback(() => {
     activeRef.current = false;
     cancelAnimationFrame(rafRef.current);
-    zxingControlsRef.current?.stop();
-    zxingControlsRef.current = null;
     zxingRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
@@ -154,28 +151,32 @@ export function useScanner(onDetect?: (ean: string) => void): UseScannerReturn {
 
       rafRef.current = requestAnimationFrame(tick);
     } else if (onDetect) {
-      // ZXing fallback for browsers without BarcodeDetector (iOS Safari < 17.4, Firefox)
+      // ZXing RAF loop — decodeFromVideoElement is unreliable in Safari; we drive the loop ourselves
       const reader = new BrowserMultiFormatReader();
       zxingRef.current = reader;
-      dbg("ZXing fallback: starting decode");
-      try {
-        const controls = await reader.decodeFromVideoElement(
-          ref.current,
-          (result, err) => {
-            if (!activeRef.current) return;
-            if (result) {
-              dbg(`ZXing detected: ${result.getText()}`);
-              activeRef.current = false;
-              onDetect(result.getText());
-            } else if (err && !(err instanceof NotFoundException)) {
-              dbg(`ZXing err: ${err.message}`);
-            }
+      dbg("ZXing fallback: starting RAF loop");
+
+      let frameCount = 0;
+      const tick = async () => {
+        if (!activeRef.current || !ref.current) return;
+        frameCount++;
+        if (frameCount % 30 === 0) dbg(`ZXing frames: ${frameCount}`);
+        try {
+          const result = await reader.decodeOnceFromVideoElement(ref.current);
+          if (activeRef.current) {
+            dbg(`ZXing detected: ${result.getText()}`);
+            activeRef.current = false;
+            onDetect(result.getText());
           }
-        );
-        zxingControlsRef.current = controls;
-      } catch (err) {
-        dbg(`ZXing start ERR: ${err instanceof Error ? err.message : err}`);
-      }
+        } catch (err) {
+          if (!(err instanceof NotFoundException)) {
+            if (frameCount < 5) dbg(`ZXing err: ${err instanceof Error ? err.message : err}`);
+          }
+          rafRef.current = requestAnimationFrame(tick);
+        }
+      };
+
+      rafRef.current = requestAnimationFrame(tick);
     }
   }, [hasBarcodeDetector, onDetect, stop]);
 
