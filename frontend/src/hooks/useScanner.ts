@@ -1,4 +1,6 @@
 import { useRef, useState, useCallback } from "react";
+import { BrowserMultiFormatReader } from "@zxing/browser";
+import { NotFoundException } from "@zxing/library";
 
 declare class BarcodeDetector {
   constructor(options?: { formats: string[] });
@@ -63,10 +65,15 @@ export function useScanner(onDetect?: (ean: string) => void): UseScannerReturn {
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number>(0);
   const activeRef = useRef(false);
+  const zxingRef = useRef<BrowserMultiFormatReader | null>(null);
+  const zxingControlsRef = useRef<{ stop: () => void } | null>(null);
 
   const stop = useCallback(() => {
     activeRef.current = false;
     cancelAnimationFrame(rafRef.current);
+    zxingControlsRef.current?.stop();
+    zxingControlsRef.current = null;
+    zxingRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     setState("idle");
@@ -146,6 +153,29 @@ export function useScanner(onDetect?: (ean: string) => void): UseScannerReturn {
       };
 
       rafRef.current = requestAnimationFrame(tick);
+    } else if (onDetect) {
+      // ZXing fallback for browsers without BarcodeDetector (iOS Safari < 17.4, Firefox)
+      const reader = new BrowserMultiFormatReader();
+      zxingRef.current = reader;
+      dbg("ZXing fallback: starting decode");
+      try {
+        const controls = await reader.decodeFromVideoElement(
+          ref.current,
+          (result, err) => {
+            if (!activeRef.current) return;
+            if (result) {
+              dbg(`ZXing detected: ${result.getText()}`);
+              activeRef.current = false;
+              onDetect(result.getText());
+            } else if (err && !(err instanceof NotFoundException)) {
+              dbg(`ZXing err: ${err.message}`);
+            }
+          }
+        );
+        zxingControlsRef.current = controls;
+      } catch (err) {
+        dbg(`ZXing start ERR: ${err instanceof Error ? err.message : err}`);
+      }
     }
   }, [hasBarcodeDetector, onDetect, stop]);
 
