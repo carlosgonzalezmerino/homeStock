@@ -12,11 +12,11 @@ export function Scan() {
   const resolving = useRef(false);
 
   const handleDetect = useCallback(
-    async (ean: string) => {
+    async (raw: string) => {
       if (resolving.current) return;
       resolving.current = true;
       scanner.stop();
-      await resolveAndNavigate(ean, navigate);
+      await resolveAndNavigate(extractEan(raw), navigate);
       resolving.current = false;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -92,7 +92,7 @@ export function Scan() {
       )}
       {isScanning && (
         <p className="text-body-sm text-on-surface-variant text-center">
-          Apunta al código de barras
+          Apunta al código de barras o QR
         </p>
       )}
       {hasError && (
