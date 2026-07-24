@@ -46,7 +46,7 @@ export function Scan() {
     const ean = manualEan.trim();
     if (!ean) return;
     scanner.stop();
-    await resolveAndNavigate(ean, navigate);
+    await resolveAndNavigate(extractEan(ean), navigate);
   }
 
   const isScanning = scanner.state === "scanning";
