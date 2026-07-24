@@ -51,6 +51,11 @@ describe("extractEan", () => {
     const url = "https://qrtrack.mercadona.es/code/12345678/x/?z=1";
     expect(extractEan(url)).toBe("12345678");
   });
+
+  it("strips leading 0 from a 14-digit Mercadona EAN", () => {
+    const url = "https://qrtrack.mercadona.es/code/08410376003139/other?foo=1";
+    expect(extractEan(url)).toBe("8410376003139");
+  });
 });
 
 // ─── helpers ────────────────────────────────────────────────────────────────
