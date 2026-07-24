@@ -173,6 +173,6 @@ async function resolveAndNavigate(ean: string, navigate: ReturnType<typeof useNa
 }
 
 export function extractEan(raw: string): string {
-  const m = raw.match(/https?:\/\/qrtrack\.mercadona\.es\/code\/(\d{8,13})\//);
+  const m = raw.match(/qrtrack\.mercadona\.es\/code\/(\d{8,13})/);
   return m ? m[1] : raw;
 }
