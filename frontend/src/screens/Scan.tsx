@@ -168,6 +168,9 @@ async function resolveAndNavigate(ean: string, navigate: ReturnType<typeof useNa
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) {
       navigate(`/scan/${ean}/manual`);
+    } else {
+      // network error, 5xx, etc. — ProductDetail will show its own error state
+      navigate(`/scan/${ean}`);
     }
   }
 }
