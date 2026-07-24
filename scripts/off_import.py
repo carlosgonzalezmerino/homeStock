@@ -77,7 +77,7 @@ def import_off(csv_path: str, engine: Engine, chunk_size: int = 1000) -> int:
     ):
         reader = csv.DictReader(handle, delimiter="\t")
         for row in reader:
-            if not _is_mercadona(row):
+            if not _is_mercadona(row) or (row.get("code") or "")[:2] == "00":
                 continue
             product = parse_row(row)
             if product is None:

@@ -62,7 +62,7 @@ class InventoryPatch(BaseModel):
 class InventoryOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int | None = None
+    id: int
     ean: str
     quantity: float
     threshold: float

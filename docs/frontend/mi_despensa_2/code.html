@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>Alimenda - Mi Despensa</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-primary": "#003915",
+                "surface": "#0e150e",
+                "on-primary-fixed-variant": "#005321",
+                "surface-container": "#1a221a",
+                "on-surface-variant": "#bccbb9",
+                "surface-variant": "#2f372e",
+                "outline-variant": "#3d4a3d",
+                "surface-container-low": "#161d16",
+                "surface-bright": "#333b33",
+                "outline": "#869585",
+                "surface-container-highest": "#2f372e",
+                "on-tertiary-fixed": "#410001",
+                "background": "#0e150e",
+                "surface-dim": "#0e150e",
+                "on-error-container": "#ffdad6",
+                "primary": "#4be277",
+                "tertiary-fixed": "#ffdad5",
+                "on-secondary-fixed-variant": "#3a485c",
+                "tertiary": "#ffb5ab",
+                "primary-container": "#22c55e",
+                "primary-fixed": "#6bff8f",
+                "on-tertiary-fixed-variant": "#7f2a21",
+                "on-primary-container": "#004b1e",
+                "inverse-primary": "#006e2f",
+                "on-secondary-container": "#abb9d2",
+                "on-secondary": "#233144",
+                "on-secondary-fixed": "#0d1c2f",
+                "tertiary-container": "#ff8b7c",
+                "secondary-fixed-dim": "#b9c7e0",
+                "secondary": "#b9c7e0",
+                "on-tertiary": "#60130d",
+                "on-surface": "#dce5d9",
+                "inverse-surface": "#dce5d9",
+                "surface-container-lowest": "#091009",
+                "on-error": "#690005",
+                "on-tertiary-container": "#76231b",
+                "secondary-container": "#3c4a5e",
+                "on-primary-fixed": "#002109",
+                "surface-container-high": "#242c24",
+                "surface-tint": "#4ae176",
+                "error-container": "#93000a",
+                "on-background": "#dce5d9",
+                "primary-fixed-dim": "#4ae176",
+                "secondary-fixed": "#d5e3fd",
+                "tertiary-fixed-dim": "#ffb4a9",
+                "inverse-on-surface": "#2a322a",
+                "error": "#ffb4ab"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "stack-md": "24px",
+                "gutter": "16px",
+                "container-padding": "20px",
+                "base": "8px",
+                "stack-sm": "12px"
+        },
+        "fontFamily": {
+                "headline-lg-mobile": ["Inter"],
+                "headline-md": ["Inter"],
+                "body-lg": ["Inter"],
+                "headline-lg": ["Inter"],
+                "label-md": ["Inter"],
+                "body-sm": ["Inter"]
+        },
+        "fontSize": {
+                "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+        }
+      },
+    },
+  }
+</script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .swipe-action {
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      body {
+        min-height: max(884px, 100dvh);
+      }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-lg min-h-screen pb-32">
+<!-- Top App Bar -->
+<header class="w-full top-0 sticky z-40 bg-background flex justify-between items-center px-container-padding h-16">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="A professional close-up studio portrait of a friendly young woman with a warm smile, set against a soft blurred kitchen background. The lighting is bright and natural, reflecting a clean, modern aesthetic with a high-trust, low-friction atmosphere consistent with a minimalist food management application." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8xX4r28RFxZKdvJDNCmbUifyNK9qPZf9SLKAWURz06BTS1yiFpq29mAEGY_KEumrHWBzMik3p_4qqj01CTGePmZDicSwlQcBwsD7LKkjgpwe4f27YUp5zfB9V2pbU134GTjNNAqZV2QgQwhKatE5NuwGS55fceMJ6pGqnnBj6iVezIFmH0Ko3LcAEhdaOlSsQqy0Gh3Ugdl5xY0ksJMSPHKV6yMlFQ9LwLSr0JqBTxQhFD2y9TzLC4heTvVAVvZG0Q7WEb9z21A0"/>
+</div>
+<h1 class="text-headline-md font-headline-md text-primary tracking-tight">Alimenda</h1>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors active:scale-95 duration-150 ease-in-out">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+</button>
+</header>
+<main class="px-container-padding pt-2">
+<!-- Search Bar -->
+<div class="relative mb-stack-md">
+<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">search</span>
+</div>
+<input class="w-full h-14 pl-12 pr-4 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg focus:ring-2 focus:ring-primary text-body-lg placeholder:text-on-surface-variant/50 text-on-surface" placeholder="Buscar en mi despensa" type="text"/>
+</div>
+<!-- Filter Chips -->
+<div class="flex gap-2 overflow-x-auto hide-scrollbar mb-stack-md -mx-container-padding px-container-padding">
+<button class="px-5 py-2 rounded-full bg-primary text-on-primary text-label-md font-label-md whitespace-nowrap">Todos</button>
+<button class="px-5 py-2 rounded-full bg-surface-container-highest text-on-surface-variant text-label-md font-label-md whitespace-nowrap hover:bg-surface-container-high transition-colors">Frutas</button>
+<button class="px-5 py-2 rounded-full bg-surface-container-highest text-on-surface-variant text-label-md font-label-md whitespace-nowrap hover:bg-surface-container-high transition-colors">Lácteos</button>
+<button class="px-5 py-2 rounded-full bg-surface-container-highest text-on-surface-variant text-label-md font-label-md whitespace-nowrap hover:bg-surface-container-high transition-colors">Carnes</button>
+<button class="px-5 py-2 rounded-full bg-surface-container-highest text-on-surface-variant text-label-md font-label-md whitespace-nowrap hover:bg-surface-container-high transition-colors">Bebidas</button>
+</div>
+<!-- Pantry List -->
+<div class="flex flex-col gap-stack-sm">
+<!-- Item Card: Expired -->
+<div class="relative group overflow-hidden rounded-xl bg-surface-container-lowest border border-outline-variant shadow-md border-l-4 border-l-error">
+<div class="flex items-center p-4 gap-4 swipe-action">
+<div class="w-16 h-16 rounded-lg bg-surface-container overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover opacity-80" data-alt="A high-quality, minimalist studio photograph of a fresh carton of organic milk on a clean white surface. The lighting is soft and even, highlighting the product's texture. The color palette is dominated by pure whites and subtle greys, fitting a modern and organized kitchen inventory system." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQu7qcsYJLf-z_QEEMPT5ifPnNg1GGC7ThfAY5KyC2fD51ajsMvRUn7TZTthO7Es0Y65HOQVR4SaDR2O5ete6vOQjsH_scV2dgH6_kOVH22qgU5Wakdb_iXcFJhMlxPBBmN7W6O6Sam7jW08ntn3w5rX1fXJ2e7CSRKgcm-wFTRJVeiUbHmzpjF2WB5GJjWGQf9KqNp0Ee7TYFHU0c_9zZQXnZLApVH9238q4WcjgQkTO4H61FK5Q5k3I3Om_CTOMn3M2wCwaAMUE"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h3 class="font-headline-md text-body-lg text-on-surface">Leche Entera</h3>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-error-container text-on-error-container uppercase tracking-wider">Caducado</span>
+</div>
+<p class="text-body-sm text-on-surface-variant mt-1">2 unidades</p>
+<div class="mt-2 w-full bg-surface-variant h-1.5 rounded-full overflow-hidden">
+<div class="bg-error h-full rounded-full w-[20%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Item Card: OK -->
+<div class="relative group overflow-hidden rounded-xl bg-surface-container-lowest border border-outline-variant shadow-md border-l-4 border-l-primary">
+<div class="flex items-center p-4 gap-4 swipe-action">
+<div class="w-16 h-16 rounded-lg bg-surface-container overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover opacity-90" data-alt="A crisp, vibrant photo of several ripe red apples clustered together on a light grey stone countertop. The lighting is bright and natural, emphasizing the fresh texture of the fruit skins. The aesthetic is clean and appetizing, aligning with a reliable and fresh food management brand." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxqfE7Kq_wg9reOBoTj9YSMTvUxUCLYCTwFVcwXJh1Fz1Fhmm0KypQG1lWpF1jwmBoCljdaJoFN4z_RmzqmfnXf7jASjWe4yb7nt07hBJa9NXdKNyCFtnTSyfUexeRFT22x2XyTKH92b-Z9EIYP12vth_XPYcSyYLk8QczscJ_uDRZqh8N0yEFYmW-XxXpshefW0rLojf209gHPt6hY4BOZMiYaJqbSMlZduxJU_qW7-U8Gi6yBInneJ-4sA_7-nR-Kk5yrrA5vqk"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h3 class="font-headline-md text-body-lg text-on-surface">Manzanas Rojas</h3>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary-container text-on-primary-container uppercase tracking-wider">En buen estado</span>
+</div>
+<p class="text-body-sm text-on-surface-variant mt-1">6 unidades</p>
+<div class="mt-2 w-full bg-surface-variant h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full w-[75%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Item Card: Warning (Approaching Expiration) -->
+<div class="relative group overflow-hidden rounded-xl bg-surface-container-lowest border border-outline-variant shadow-md border-l-4 border-l-tertiary">
+<div class="flex items-center p-4 gap-4 swipe-action">
+<div class="w-16 h-16 rounded-lg bg-surface-container overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover opacity-90" data-alt="A minimalist overhead shot of a container of Greek yogurt on a white marble background. The styling is simple and clinical yet appealing, focusing on organizational clarity. Soft ambient shadows provide depth, and the cool tones maintain a professional corporate feel." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCr0dxJIuXxY5Mpze13QkHVlFNKd-PZYRj5hO7WESYE2tLX8K-Idcmbw5qo8si-QUrIpmkj0f3HxhLlJBay6Lo22l2XdjO9Ik8naSwIDOQ5JyioyKPrO7pUkkpKImDbCBZzPIznTkTyDqAjLUkKo28Wp3a1F0YcCDygSztmhB2qHGwLF61HFwYw5946gbkssggqcj-wK1J92_jw1py4ln0-_GOh254F0b7SZvtxO-q2IxPcsINtmOhlDZbAVee1-AOoZW_bvujW-lM"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h3 class="font-headline-md text-body-lg text-on-surface">Yogur Griego</h3>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-tertiary-container text-on-tertiary-container uppercase tracking-wider">Expira pronto</span>
+</div>
+<p class="text-body-sm text-on-surface-variant mt-1">1 unidad</p>
+<div class="mt-2 w-full bg-surface-variant h-1.5 rounded-full overflow-hidden">
+<div class="bg-tertiary h-full rounded-full w-[40%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Item Card: OK -->
+<div class="relative group overflow-hidden rounded-xl bg-surface-container-lowest border border-outline-variant shadow-md border-l-4 border-l-primary">
+<div class="flex items-center p-4 gap-4 swipe-action">
+<div class="w-16 h-16 rounded-lg bg-surface-container overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover opacity-90" data-alt="A studio shot of two clean, clear glass bottles of premium sparkling water set against a soft neutral background. The lighting highlights the crispness and clarity of the glass. The composition is balanced and minimalist, reflecting a calm and organized pantry environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBw7G1EN-Ce-EK4vry1S_LfwfWy_233-E1KXaMaXo3q7kq7E5JxPaw5QIpAf-iXbGf5xPB_a2u7IT5AzDkO9lf077tN3a8jvuE_iVPYE6NZPCijuQgdCMceXqHytY0sJdvZl3aIqa1xIf3rbOcaIcXCjxdG4a5kj_HcAyPwzTyQbeZ0GW_UagoqVjhlAEAAhdNQylg7XuS1uXzsPjpc-68EIfEDbiJfPruAzRCnFI_CvyTH-w5PDPdWpyXXLpCin2juNLDW5vYZKrY"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h3 class="font-headline-md text-body-lg text-on-surface">Agua Mineral</h3>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary-container text-on-primary-container uppercase tracking-wider">En buen estado</span>
+</div>
+<p class="text-body-sm text-on-surface-variant mt-1">12 unidades</p>
+<div class="mt-2 w-full bg-surface-variant h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full w-[90%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Item Card: OK -->
+<div class="relative group overflow-hidden rounded-xl bg-surface-container-lowest border border-outline-variant shadow-md border-l-4 border-l-primary">
+<div class="flex items-center p-4 gap-4 swipe-action">
+<div class="w-16 h-16 rounded-lg bg-surface-container overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover opacity-90" data-alt="A professionally styled photograph of a brown paper bag filled with fresh, crusty sourdough bread. The setting is a minimalist, high-end kitchen with soft morning light. The textures of the bread and paper are detailed, emphasizing reliability and fresh resources." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2nP-7H0WgVMs5Cz55I3irSt06_HFsqMdtYSjTBOMgA67J-Ut_ZHPtMnM80k-E8v5mCouoV1mhnldUZe2u4y11r_M7alslNSvfw3L2aG8rPEIEVu_YQm_sp32pMwbJrn26LzuJAA90ajmPUjUzThxPuMkU56y8POTilnaeVJPyqzx3gKmtutuhEMmAN9iyYo3Qga7PcwD6Iu2-ScZRx-H0LU-6pyL9DYJXd4E4t_BKKyEDmp1fO5ktTtGYgOf5tkKwl2BL1_KmLfE"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h3 class="font-headline-md text-body-lg text-on-surface">Pan de Masa Madre</h3>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary-container text-on-primary-container uppercase tracking-wider">En buen estado</span>
+</div>
+<p class="text-body-sm text-on-surface-variant mt-1">1 unidad</p>
+<div class="mt-2 w-full bg-surface-variant h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full w-[60%]"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB -->
+<button class="fixed right-6 bottom-24 w-16 h-16 bg-primary text-on-primary rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 z-40">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-3 pb-safe bg-surface-container-lowest border-t border-outline-variant shadow-lg rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-all px-5 py-1.5 rounded-full" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-label-md font-label-md mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-5 py-1.5 scale-98 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">kitchen</span>
+<span class="text-label-md font-label-md mt-1">My Pantry</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-all px-5 py-1.5 rounded-full" href="#">
+<span class="material-symbols-outlined">barcode_scanner</span>
+<span class="text-label-md font-label-md mt-1">Scanner</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-all px-5 py-1.5 rounded-full" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-label-md font-label-md mt-1">Settings</span>
+</a>
+</nav>
+<script>
+        // Simple Swipe Micro-interaction Simulation
+        document.querySelectorAll('.swipe-action').forEach(item => {
+            let startX;
+            item.addEventListener('touchstart', e => {
+                startX = e.touches[0].clientX;
+            });
+            item.addEventListener('touchmove', e => {
+                let currentX = e.touches[0].clientX;
+                let diff = currentX - startX;
+                if (diff < 0 && diff > -100) {
+                    item.style.transform = `translateX(${diff}px)`;
+                }
+            });
+            item.addEventListener('touchend', e => {
+                item.style.transform = 'translateX(0px)';
+            });
+        });
+    </script>
+</body></html>

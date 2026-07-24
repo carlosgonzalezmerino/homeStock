@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from app.api import inventory, products, resolve, shopping_list
-from app.db import create_db_and_tables, get_engine, set_engine
+from app.db import create_db_and_tables, get_engine, is_engine_set, set_engine
 
 
 def create_app() -> FastAPI:
@@ -19,9 +19,7 @@ def create_app() -> FastAPI:
 
 
 def _bootstrap() -> FastAPI:
-    from app import db as db_module
-
-    if db_module._engine is None:
+    if not is_engine_set():
         engine = get_engine()
         set_engine(engine)
         create_db_and_tables(engine)

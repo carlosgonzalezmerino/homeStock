@@ -85,9 +85,10 @@ def test_import_off_skips_non_mercadona() -> None:
     create_db_and_tables(engine)
     import_off(FIXTURE, engine)
     with Session(engine) as session:
-        assert session.exec(
-            select(OffProduct).where(OffProduct.ean == "222")
-        ).first() is None
+        assert (
+            session.exec(select(OffProduct).where(OffProduct.ean == "222")).first()
+            is None
+        )
 
 
 def test_import_off_handles_fields_larger_than_csv_default_limit(

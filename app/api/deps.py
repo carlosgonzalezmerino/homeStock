@@ -8,7 +8,6 @@ from app.repositories.products import ProductRepository
 from app.services.inventory import InventoryService
 from app.services.resolver import ProductResolver
 from app.services.shopping_list import ShoppingListService
-from app.sources.mercadona import MercadonaSource
 from app.sources.openfoodfacts import OffSource
 
 
@@ -30,7 +29,10 @@ def get_resolver(
     products: ProductRepository = Depends(get_product_repo),
     off_repo: OffProductRepository = Depends(get_off_repo),
 ) -> ProductResolver:
-    sources = [MercadonaSource(), OffSource(off_repo)]
+    # Mercadona is intentionally omitted for now (its EAN->id derivation is
+    # unreliable); the resolver runs local -> OFF -> 404. MercadonaSource stays
+    # available and tested for when it is re-enabled.
+    sources = [OffSource(off_repo)]
     return ProductResolver(products, sources)
 
 

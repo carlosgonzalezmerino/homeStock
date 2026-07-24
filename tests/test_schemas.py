@@ -15,7 +15,8 @@ def test_product_patch_all_optional() -> None:
 
 
 def test_inventory_out_reads_from_orm() -> None:
-    item = InventoryItem(ean="1", quantity=2, threshold=1, unit="L")
+    item = InventoryItem(id=1, ean="1", quantity=2, threshold=1, unit="L")
     out = InventoryOut.model_validate(item)
+    assert out.id == 1
     assert out.quantity == 2
     assert out.unit == "L"

@@ -46,8 +46,7 @@ def client() -> Iterator[TestClient]:
 @pytest.fixture
 def seed_product():
     def _seed(ean: str = "1", name: str = "Milk", source: str = "manual") -> None:
-        assert db_module._engine is not None
-        with Session(db_module._engine) as session:
+        for session in db_module.get_session():  # uses the already-set engine
             session.add(Product(ean=ean, name=name, source=source))
             session.commit()
 

@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "FastAPI",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["app.main:app", "--reload", "--port", "8000"],
+      "jinja": true,
+      "envFile": "${workspaceFolder}/.env",
+      "python": "${workspaceFolder}/.venv/bin/python"
+    },
+    {
+      "name": "OFF import",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "scripts.off_import",
+      "args": [
+        "--csv",
+        "data/en.openfoodfacts.org.products.csv"
+      ],
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/bin/python"
+    }
+  ]
+}

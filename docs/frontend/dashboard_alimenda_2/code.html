@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .active-nav-indicator {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes subtle-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+        .float-animation {
+            animation: subtle-float 3s ease-in-out infinite;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary": "#003915",
+                        "surface": "#0e150e",
+                        "on-primary-fixed-variant": "#005321",
+                        "surface-container": "#1a221a",
+                        "on-surface-variant": "#bccbb9",
+                        "surface-variant": "#2f372e",
+                        "outline-variant": "#3d4a3d",
+                        "surface-container-low": "#161d16",
+                        "surface-bright": "#333b33",
+                        "outline": "#869585",
+                        "surface-container-highest": "#2f372e",
+                        "on-tertiary-fixed": "#410001",
+                        "background": "#0e150e",
+                        "surface-dim": "#0e150e",
+                        "on-error-container": "#ffdad6",
+                        "primary": "#4be277",
+                        "tertiary-fixed": "#ffdad5",
+                        "on-secondary-fixed-variant": "#3a485c",
+                        "tertiary": "#ffb5ab",
+                        "primary-container": "#22c55e",
+                        "primary-fixed": "#6bff8f",
+                        "on-tertiary-fixed-variant": "#7f2a21",
+                        "on-primary-container": "#004b1e",
+                        "inverse-primary": "#006e2f",
+                        "on-secondary-container": "#abb9d2",
+                        "on-secondary": "#233144",
+                        "on-secondary-fixed": "#0d1c2f",
+                        "tertiary-container": "#ff8b7c",
+                        "secondary-fixed-dim": "#b9c7e0",
+                        "secondary": "#b9c7e0",
+                        "on-tertiary": "#60130d",
+                        "on-surface": "#dce5d9",
+                        "inverse-surface": "#dce5d9",
+                        "surface-container-lowest": "#091009",
+                        "on-error": "#690005",
+                        "on-tertiary-container": "#76231b",
+                        "surface-container-high": "#242c24",
+                        "surface-tint": "#4ae176",
+                        "error-container": "#93000a",
+                        "on-background": "#dce5d9",
+                        "primary-fixed-dim": "#4ae176",
+                        "secondary-fixed": "#d5e3fd",
+                        "tertiary-fixed-dim": "#ffb4a9",
+                        "inverse-on-surface": "#2a322a",
+                        "error": "#ffb4ab"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "24px",
+                        "gutter": "16px",
+                        "container-padding": "20px",
+                        "base": "8px",
+                        "stack-sm": "12px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-lg min-h-screen pb-32">
+<!-- Top Navigation -->
+<header class="w-full top-0 sticky z-50 flex justify-between items-center px-container-padding h-16 bg-background">
+<div class="flex items-center gap-2">
+<img alt="Alimenda Logo" class="h-8 w-8 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAojTrYE43eTeqMTkBtPejJSIxwyxvMXgGzgouUiu35BihqB1QSllHPbDpPGBa7_-SG5yWAQaLuMWiL5-GF3kiFTcwvJ66Gpg1_Ixaxd95WMTIE8Ne8k9k6hQdp9ZbcL0OXjEGq13cAYfuRowDU0HAlYoNdQwPwnmGWyu2zXuKCV4P7vNFU0V5yef_pKXHrrroRHCq9NN5Q6NXhr950Pcqr77U7ySkS3gl3wD2Ls6oPmLg2mzTlXdbQLfMHuTBTilEdZ6TXnwDbNyg"/>
+<span class="text-headline-md font-headline-md text-primary tracking-tight">Alimenda</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors">notifications</button>
+<div class="w-10 h-10 rounded-full border-2 border-primary overflow-hidden">
+<img alt="User profile avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAG7BzSHJJ8cr802nARBXuUg-Qjsbl-Aze3K9ZhT5B2JvselKM4srgbRqS4msUrS6y_ofXvyOW-vED7j8ljCUb-4NJpCObNaKeaZa7OtT5mjIb5yGmHWcpAK9vI5b9bgxGxPQkn1ebXIibfU9pd1y5r-byE38zULojBIfv7sbtbAttwHpEH2ui8hZX4MIaKSNsL14LGbuZ6pmcFoWH5U5DrpPAMcgfGOIRhkNp7Tr2iK0kqGgEsj9_IFm7q8nqbxJPVrhaJcGxiz6U"/>
+</div>
+</div>
+</header>
+<main class="max-w-md mx-auto px-container-padding space-y-stack-md py-6">
+<!-- Welcome Section -->
+<section class="space-y-stack-sm">
+<h1 class="text-headline-lg-mobile font-headline-lg-mobile text-on-surface">¡Hola, User!</h1>
+<div class="bg-surface-container-low p-5 rounded-xl shadow-lg border border-outline-variant/10 overflow-hidden relative">
+<div class="relative z-10">
+<p class="text-body-lg text-on-surface-variant mb-3">Tu despensa está al <span class="font-bold text-primary">80%</span></p>
+<div class="w-full h-3 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary-container w-[80%] rounded-full"></div>
+</div>
+<p class="text-label-md font-label-md text-outline mt-3 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">info</span>
+                        Buen trabajo manteniendo el stock equilibrado.
+                    </p>
+</div>
+<!-- Abstract Background Shape -->
+<div class="absolute -right-6 -bottom-6 w-32 h-32 bg-primary/10 rounded-full blur-3xl"></div>
+</div>
+</section>
+<!-- Quick Actions -->
+<section>
+<button class="w-full bg-primary-container text-on-primary-container h-14 flex items-center justify-center gap-3 rounded-full font-headline-md shadow-lg active:scale-95 transition-all duration-150">
+<span class="material-symbols-outlined">barcode_scanner</span>
+<span>Scan Barcode</span>
+</button>
+</section>
+<!-- Expiration Alerts Carousel -->
+<section class="space-y-stack-sm">
+<div class="flex justify-between items-center">
+<h2 class="text-headline-md font-headline-md text-on-surface">Alertas de Caducidad</h2>
+<button class="text-primary text-label-md font-label-md">Ver todo</button>
+</div>
+<div class="flex overflow-x-auto hide-scrollbar gap-gutter pb-4 -mx-container-padding px-container-padding">
+<!-- Card 1 -->
+<div class="min-w-[160px] bg-surface-container-low p-4 rounded-xl border-l-4 border-l-error border border-outline-variant/10 shadow-md flex flex-col gap-2">
+<div class="w-10 h-10 bg-error/20 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-error">water_drop</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Milk</p>
+<p class="text-label-md text-error">2 days left</p>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="min-w-[160px] bg-surface-container-low p-4 rounded-xl border-l-4 border-l-error border border-outline-variant/10 shadow-md flex flex-col gap-2">
+<div class="w-10 h-10 bg-error/20 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-error">icecream</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Yogurt</p>
+<p class="text-label-md text-error">Today</p>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="min-w-[160px] bg-surface-container-low p-4 rounded-xl border-l-4 border-l-tertiary-container border border-outline-variant/10 shadow-md flex flex-col gap-2">
+<div class="w-10 h-10 bg-tertiary-container/20 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary-container">egg</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Huevos</p>
+<p class="text-label-md text-tertiary-container">4 days left</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Category Grid -->
+<section class="space-y-stack-sm pb-10">
+<h2 class="text-headline-md font-headline-md text-on-surface">Resumen por Categoría</h2>
+<div class="grid grid-cols-2 gap-4">
+<!-- Category 1 -->
+<div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 hover:border-primary transition-colors group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-secondary-container/20 rounded-lg group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-secondary-fixed-dim">ac_unit</span>
+</div>
+<span class="text-label-md text-outline">12 items</span>
+</div>
+<p class="font-bold text-on-surface">Refrigerado</p>
+</div>
+<!-- Category 2 -->
+<div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 hover:border-primary transition-colors group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-tertiary-container/20 rounded-lg group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-tertiary-container">kitchen</span>
+</div>
+<span class="text-label-md text-outline">45 items</span>
+</div>
+<p class="font-bold text-on-surface">Despensa</p>
+</div>
+<!-- Category 3 -->
+<div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 hover:border-primary transition-colors group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-secondary/20 rounded-lg group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-secondary">severe_cold</span>
+</div>
+<span class="text-label-md text-outline">8 items</span>
+</div>
+<p class="font-bold text-on-surface">Congelados</p>
+</div>
+<!-- Category 4 -->
+<div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 hover:border-primary transition-colors group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-primary/20 rounded-lg group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-primary">nutrition</span>
+</div>
+<span class="text-label-md text-outline">15 items</span>
+</div>
+<p class="font-bold text-on-surface">Fruta</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-3 pb-safe bg-surface-container-high shadow-2xl rounded-t-xl">
+<!-- Home (Active) -->
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-5 py-1.5 scale-98 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="text-label-md font-label-md">Home</span>
+</a>
+<!-- My Pantry -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-all px-4 py-1.5 rounded-full" href="#">
+<span class="material-symbols-outlined" data-icon="kitchen">kitchen</span>
+<span class="text-label-md font-label-md">My Pantry</span>
+</a>
+<!-- Scanner -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-all px-4 py-1.5 rounded-full" href="#">
+<span class="material-symbols-outlined" data-icon="barcode_scanner">barcode_scanner</span>
+<span class="text-label-md font-label-md">Scanner</span>
+</a>
+<!-- Settings -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-all px-4 py-1.5 rounded-full" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-label-md font-label-md">Settings</span>
+</a>
+</nav>
+<script>
+        // Micro-interactions for category cards
+        document.querySelectorAll('.group').forEach(card => {
+            card.addEventListener('touchstart', () => {
+                card.classList.add('scale-98');
+            });
+            card.addEventListener('touchend', () => {
+                card.classList.remove('scale-98');
+            });
+        });
+
+        // Simple observer for scroll reveals
+        const observerOptions = {
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('opacity-100', 'translate-y-0');
+                    entry.target.classList.remove('opacity-0', 'translate-y-4');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('section').forEach(section => {
+            section.classList.add('transition-all', 'duration-700', 'opacity-0', 'translate-y-4');
+            observer.observe(section);
+        });
+    </script>
+</body></html>
