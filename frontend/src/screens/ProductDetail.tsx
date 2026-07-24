@@ -148,6 +148,28 @@ export function ProductDetail() {
             {tracked ? "Actualizar cantidad" : "Añadir a mi despensa"}
           </Button>
         </div>
+        {tracked && (
+          <div className="mt-3 flex gap-6">
+            {(["pantry", "freezer"] as const).map((loc) => (
+              <label key={loc} className="flex items-center gap-2 text-body-md text-on-surface cursor-pointer">
+                <input
+                  type="radio"
+                  name="location"
+                  value={loc}
+                  aria-label={loc === "pantry" ? "Despensa" : "Congelador"}
+                  checked={
+                    loc === "freezer"
+                      ? tracked.inventory.location === "freezer"
+                      : tracked.inventory.location !== "freezer"
+                  }
+                  onChange={() => patch.mutate({ ean, body: { location: loc } })}
+                  className="accent-primary"
+                />
+                {loc === "pantry" ? "Despensa" : "Congelador"}
+              </label>
+            ))}
+          </div>
+        )}
       </Card>
 
       {tracked && (
@@ -174,34 +196,6 @@ export function ProductDetail() {
       )}
 
       <MacrosCard product={product} />
-
-      {tracked && (
-        <Card>
-          <p className="text-body-lg text-on-surface-variant mb-stack-sm">Ubicación</p>
-          <div className="flex gap-6">
-            {(["pantry", "freezer"] as const).map((loc) => (
-              <label key={loc} className="flex items-center gap-2 text-body-lg text-on-surface cursor-pointer">
-                <input
-                  type="radio"
-                  name="location"
-                  value={loc}
-                  aria-label={loc === "pantry" ? "Despensa" : "Congelador"}
-                  checked={
-                    loc === "freezer"
-                      ? tracked.inventory.location === "freezer"
-                      : tracked.inventory.location !== "freezer"
-                  }
-                  onChange={() =>
-                    patch.mutate({ ean, body: { location: loc } })
-                  }
-                  className="accent-primary"
-                />
-                {loc === "pantry" ? "Despensa" : "Congelador"}
-              </label>
-            ))}
-          </div>
-        </Card>
-      )}
 
       {tracked && (
         <Button variant="ghost" onClick={handleDelete} disabled={remove.isPending}>
