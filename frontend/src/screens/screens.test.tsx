@@ -34,9 +34,9 @@ import { Settings } from "@/screens/Settings";
 import { CustomEntry } from "@/screens/CustomEntry";
 
 describe("extractEan", () => {
-  it("extracts EAN from a Mercadona QR URL", () => {
-    const url = "https://qrtrack.mercadona.es/code/8410376003139/other/path?foo=bar";
-    expect(extractEan(url)).toBe("8410376003139");
+  it("extracts EAN-13 from a real Mercadona GS1 QR URL", () => {
+    const url = "https://qrtrack.mercadona.es/01/08402001005220/10/561969AR?17=260721&16=260718";
+    expect(extractEan(url)).toBe("8402001005220");
   });
 
   it("returns a plain EAN string unchanged", () => {
@@ -47,13 +47,8 @@ describe("extractEan", () => {
     expect(extractEan("https://example.com/product/123")).toBe("https://example.com/product/123");
   });
 
-  it("extracts an 8-digit EAN-8 from a QR URL", () => {
-    const url = "https://qrtrack.mercadona.es/code/12345678/x/?z=1";
-    expect(extractEan(url)).toBe("12345678");
-  });
-
-  it("strips leading 0 from a 14-digit Mercadona EAN", () => {
-    const url = "https://qrtrack.mercadona.es/code/08410376003139/other?foo=1";
+  it("strips leading 0 from GTIN-14 to get EAN-13", () => {
+    const url = "https://qrtrack.mercadona.es/01/08410376003139/10/ABC";
     expect(extractEan(url)).toBe("8410376003139");
   });
 });

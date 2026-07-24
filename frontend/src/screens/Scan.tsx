@@ -176,8 +176,10 @@ async function resolveAndNavigate(ean: string, navigate: ReturnType<typeof useNa
 }
 
 export function extractEan(raw: string): string {
-  const m = raw.match(/qrtrack\.mercadona\.es\/code\/(\d{8,14})/);
+  // GS1 QR: qrtrack.mercadona.es/01/<GTIN14>/… — /01/ is the GTIN application identifier
+  const m = raw.match(/qrtrack\.mercadona\.es\/01\/(\d{14})/);
   if (!m) return raw;
-  const ean = m[1];
-  return ean.length === 14 && ean.startsWith("0") ? ean.slice(1) : ean;
+  const gtin = m[1];
+  // GTIN-14 with leading 0 wraps an EAN-13
+  return gtin.startsWith("0") ? gtin.slice(1) : gtin;
 }
