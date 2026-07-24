@@ -20,7 +20,7 @@ export interface UseScannerReturn {
 }
 
 const FORMAT_CANDIDATES = [
-  ["ean_13", "ean_8", "code_128", "upc_e"],
+  ["ean_13", "ean_8", "code_128", "upc_e", "qr_code"],
   ["ean_13", "ean_8", "code_128"],
   ["ean_13", "ean_8"],
   ["ean_13"],
