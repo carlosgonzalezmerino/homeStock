@@ -34,11 +34,11 @@ export default {
         "on-error-container": color("--on-error-container"),
       },
       borderRadius: {
-        DEFAULT: "0.5rem",
-        sm: "0.25rem",
+        DEFAULT: "0.75rem",
+        sm: "0.375rem",
         md: "0.75rem",
-        lg: "1rem",
-        xl: "1.5rem",
+        lg: "0.75rem",
+        xl: "1.25rem",
         full: "9999px",
       },
       spacing: {
@@ -48,7 +48,10 @@ export default {
         gutter: "16px",
         "container-padding": "20px",
       },
-      fontFamily: { sans: ["Inter", "system-ui", "sans-serif"] },
+      fontFamily: {
+        sans: ["Public Sans", "system-ui", "sans-serif"],
+        serif: ["Fraunces", "Georgia", "serif"],
+      },
       fontSize: {
         "headline-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }],
         "headline-lg-mobile": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "700" }],

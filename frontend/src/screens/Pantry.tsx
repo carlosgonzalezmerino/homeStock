@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useInventory, usePatchInventory } from "@/hooks";
-import { Card, StatusBadge, QuantityStepper, Spinner, ErrorState, EmptyState } from "@/components";
+import { Card, QuantityStepper, Spinner, ErrorState, EmptyState } from "@/components";
 import type { InventoryWithProductOut, Location } from "@/types";
 
 function isPantry(location: string | null | undefined): boolean {
@@ -109,10 +109,11 @@ function PantryItem({
   }
 
   const status = localQty === 0 ? "empty" : localQty <= inventory.threshold ? "low" : "ok";
+  const tint = status === "empty" ? "error" : status === "low" ? "tertiary" : null;
 
   return (
-    <Card>
-      <div className="flex items-start gap-3">
+    <Card dense tint={tint}>
+      <div className="flex items-center gap-2">
         <button
           onClick={onNavigate}
           className="shrink-0 focus:outline-none focus:ring-2 focus:ring-primary rounded-md"
@@ -123,12 +124,12 @@ function PantryItem({
             <img
               src={product.image_url}
               alt={product.name}
-              className="h-14 w-14 rounded-md object-contain bg-surface-container-low"
+              className="h-11 w-11 rounded-md object-contain bg-surface-container-low"
             />
           ) : (
             <span
               data-testid="img-placeholder"
-              className="material-symbols-outlined flex h-14 w-14 items-center justify-center rounded-md bg-surface-container-low text-on-surface-variant text-3xl"
+              className="material-symbols-outlined flex h-11 w-11 items-center justify-center rounded-md bg-surface-container-low text-on-surface-variant text-2xl"
             >
               {inventory.location === "freezer" ? "ac_unit" : "grocery"}
             </span>
@@ -140,21 +141,13 @@ function PantryItem({
           className="min-w-0 flex-1 text-left focus:outline-none"
           type="button"
         >
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-body-lg font-medium text-on-surface truncate">{product.name}</p>
-              {product.brand && (
-                <p className="text-body-sm text-on-surface-variant truncate">{product.brand}</p>
-              )}
-            </div>
-            <StatusBadge status={status} />
-          </div>
+          <p className="text-body-lg font-medium text-on-surface truncate">{product.name}</p>
+          {product.brand && (
+            <p className="text-body-sm text-on-surface-variant truncate">{product.brand}</p>
+          )}
         </button>
-      </div>
 
-      <div className="mt-3 flex items-center justify-end gap-2">
-        <span className="text-body-sm text-on-surface-variant">{inventory.unit}</span>
-        <QuantityStepper value={localQty} onChange={handleQtyChange} size="lg" />
+        <QuantityStepper value={localQty} onChange={handleQtyChange} size="xs" />
       </div>
     </Card>
   );

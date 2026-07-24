@@ -19,7 +19,7 @@ export function QuantityStepper({ value, onChange, size = "sm" }: QuantitySteppe
       : "min-w-[2ch] text-center text-headline-md";
 
   return (
-    <div className="flex items-center gap-4">
+    <div className={`flex items-center shrink-0 ${isXs ? "gap-2" : "gap-4"}`}>
       <button
         aria-label="−"
         onClick={() => { if (value > 0) onChange(value - 1); }}
