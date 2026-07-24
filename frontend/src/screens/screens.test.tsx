@@ -28,10 +28,30 @@ vi.mock("@/theme", () => ({
 import { Dashboard } from "@/screens/Dashboard";
 import { Pantry } from "@/screens/Pantry";
 import { ProductDetail } from "@/screens/ProductDetail";
-import { Scan } from "@/screens/Scan";
+import { Scan, extractEan } from "@/screens/Scan";
 import { ManualEntry } from "@/screens/ManualEntry";
 import { Settings } from "@/screens/Settings";
 import { CustomEntry } from "@/screens/CustomEntry";
+
+describe("extractEan", () => {
+  it("extracts EAN from a Mercadona QR URL", () => {
+    const url = "https://qrtrack.mercadona.es/code/8410376003139/other/path?foo=bar";
+    expect(extractEan(url)).toBe("8410376003139");
+  });
+
+  it("returns a plain EAN string unchanged", () => {
+    expect(extractEan("8410376003139")).toBe("8410376003139");
+  });
+
+  it("returns an unrecognised URL unchanged", () => {
+    expect(extractEan("https://example.com/product/123")).toBe("https://example.com/product/123");
+  });
+
+  it("extracts an 8-digit EAN-8 from a QR URL", () => {
+    const url = "https://qrtrack.mercadona.es/code/12345678/x/?z=1";
+    expect(extractEan(url)).toBe("12345678");
+  });
+});
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
