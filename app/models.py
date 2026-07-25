@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from sqlalchemy import Text
 from sqlmodel import Field, SQLModel
 
 
@@ -15,7 +16,7 @@ class Product(SQLModel, table=True):
     brand: str | None = None
     description: str | None = None
     image_url: str | None = None
-    category: str | None = None
+    category: str | None = Field(default=None, sa_type=Text)
     quantity_desc: str | None = None
     kcal_per_100g: float | None = None
     fat_per_100g: float | None = None
@@ -50,7 +51,7 @@ class OffProduct(SQLModel, table=True):
     name: str
     brand: str | None = None
     image_url: str | None = None
-    category: str | None = None
+    category: str | None = Field(default=None, sa_type=Text)
     quantity_desc: str | None = None
     kcal_per_100g: float | None = None
     fat_per_100g: float | None = None
