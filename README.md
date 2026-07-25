@@ -38,6 +38,9 @@ and waits for the `db` service's healthcheck before starting.
 
 ### Importing an existing SQLite DB
 
+Run this from your host machine (wherever `docker compose` runs), not from
+inside a container — it needs `uv` and the sqlite file locally.
+
 If you already have a filled-in `homestock.db` (products/inventory entered
 locally) and want its data inside the MariaDB service:
 
@@ -47,6 +50,11 @@ uv run python -m scripts.migrate_to_mysql \
   --source sqlite:///homestock.db \
   --target mysql+pymysql://homestock:$DB_PASSWORD@localhost:3306/homestock
 ```
+
+This relies on `db`'s `ports: ["3306:3306"]` mapping in `docker-compose.yml`,
+which publishes MariaDB to the host as `localhost:3306` (and to your LAN)
+purely so this script can reach it. Remove that mapping afterwards if you
+don't want the DB port reachable outside the Docker network.
 
 Copies `products`, `off_products`, then `inventory_items` (in that order, so
 the `inventory_items.ean` foreign key is satisfied). It creates tables in the

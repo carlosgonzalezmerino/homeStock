@@ -15,6 +15,11 @@ services:
       # cause MariaDB startup failures, hangs, or data corruption. Chosen
       # deliberately despite the risk; a named Docker volume would avoid it.
       - /mnt/d/homeStock:/var/lib/mysql
+    ports:
+      # Published so the one-off migration script can reach MariaDB from the
+      # host as localhost:3306. Remove this once migrated if you don't want
+      # the DB port reachable from the LAN.
+      - "3306:3306"
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
