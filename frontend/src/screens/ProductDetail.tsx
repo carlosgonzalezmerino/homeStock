@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useResolve, useInventory, usePatchInventory, useAddInventory, useDeleteInventory } from "@/hooks";
 import { Card, Button, QuantityStepper, Spinner, ErrorState } from "@/components";
-import type { ProductOut, Location } from "@/types";
+import type { ProductOut } from "@/types";
 
 interface MacroRowProps {
   label: string;

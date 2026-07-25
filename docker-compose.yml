@@ -7,7 +7,7 @@ services:
     volumes:
       - homestock-data:/data
     ports:
-      - "8000:8000"
+      - "8100:8100"
     labels:
       # Traefik labels for Dokploy — LAN IP, served with the mkcert cert
       # uploaded in Dokploy's Certificates settings (SNI-matched, no ACME)
