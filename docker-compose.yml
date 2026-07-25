@@ -9,11 +9,12 @@ services:
     ports:
       - "8000:8000"
     labels:
-      # Traefik labels for Dokploy — adjust domain to yours
+      # Traefik labels for Dokploy — LAN IP, served with the mkcert cert
+      # uploaded in Dokploy's Certificates settings (SNI-matched, no ACME)
       - "traefik.enable=true"
-      - "traefik.http.routers.homestock.rule=Host(`homestock.yourdomain.com`)"
+      - "traefik.http.routers.homestock.rule=Host(`192.168.95.50`)"
       - "traefik.http.routers.homestock.entrypoints=websecure"
-      - "traefik.http.routers.homestock.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.homestock.tls=true"
       - "traefik.http.services.homestock.loadbalancer.server.port=8000"
 
 volumes:
