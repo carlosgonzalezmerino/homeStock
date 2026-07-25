@@ -10,6 +10,9 @@ _engine: Engine | None = None
 
 
 def get_engine(url: str = settings.database_url) -> Engine:
+    if not url.startswith("sqlite"):
+        return create_engine(url)
+
     connect_args = {"check_same_thread": False}
     if url == "sqlite://":
         # In-memory SQLite: use StaticPool so all connections share the same DB

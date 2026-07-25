@@ -25,9 +25,6 @@ COPY app/ ./app/
 # Frontend static files
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
-# Persistent data directory
-RUN mkdir -p /data
-
 # Serve frontend from FastAPI
 COPY docker/serve_static.py ./docker/serve_static.py
 

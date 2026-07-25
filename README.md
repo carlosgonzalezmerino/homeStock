@@ -1,6 +1,7 @@
 # homeStock — Backend
 
-Barcode-driven household inventory. FastAPI + SQLModel over SQLite.
+Barcode-driven household inventory. FastAPI + SQLModel over SQLite (local dev)
+or MariaDB (docker-compose deployment).
 
 ## Setup
 
@@ -15,6 +16,44 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 The DB (`homestock.db`) and tables are created automatically on startup.
+
+## Docker deployment
+
+`docker-compose.yml` runs the app against its own MariaDB service (`db`),
+decoupled from the app container. Its datadir is bind-mounted to
+`/mnt/d/homeStock` on the host so it survives container recreation.
+
+> `/mnt/d` is a WSL2 drvfs mount (Windows drive) without real Unix
+> permissions/file-locking, which InnoDB relies on — this is a known source of
+> MariaDB startup failures or corruption. Kept as-is by choice; switch to a
+> named Docker volume if that becomes a problem.
+
+```bash
+cp .env.example .env   # set DB_PASSWORD / DB_ROOT_PASSWORD
+docker compose up -d --build
+```
+
+The app connects via `DATABASE_URL=mysql+pymysql://homestock:${DB_PASSWORD}@db:3306/homestock`
+and waits for the `db` service's healthcheck before starting.
+
+### Importing an existing SQLite DB
+
+If you already have a filled-in `homestock.db` (products/inventory entered
+locally) and want its data inside the MariaDB service:
+
+```bash
+docker compose up -d db   # make sure MariaDB is up first
+uv run python -m scripts.migrate_to_mysql \
+  --source sqlite:///homestock.db \
+  --target mysql+pymysql://homestock:$DB_PASSWORD@localhost:3306/homestock
+```
+
+Copies `products`, `off_products`, then `inventory_items` (in that order, so
+the `inventory_items.ean` foreign key is satisfied). It creates tables in the
+target if missing but does not touch or delete anything in the source SQLite
+file. Run it against an **empty** MariaDB database — it always inserts, so
+re-running it against a target that already has rows will fail on duplicate
+primary keys.
 
 ## Import the OpenFoodFacts subset (step 3 of resolution)
 

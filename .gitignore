@@ -9,6 +9,7 @@ build/
 .ruff_cache/
 homestock.db
 data/*.csv
+.env
 
 # frontend
 frontend/node_modules/

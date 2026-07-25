@@ -1,11 +1,34 @@
 services:
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      - MARIADB_DATABASE=homestock
+      - MARIADB_USER=homestock
+      - MARIADB_PASSWORD=${DB_PASSWORD}
+      - MARIADB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+    volumes:
+      # Bind mount instead of a named volume: keeps the MariaDB datadir on the
+      # host at /mnt/d/homeStock so it survives container recreation.
+      # NOTE: this path is a WSL2 drvfs mount (Windows D: drive) — it lacks
+      # real Unix permissions/file-locking, which InnoDB relies on. This can
+      # cause MariaDB startup failures, hangs, or data corruption. Chosen
+      # deliberately despite the risk; a named Docker volume would avoid it.
+      - /mnt/d/homeStock:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   homestock:
     build: .
     restart: unless-stopped
     environment:
-      - DATABASE_URL=sqlite:////data/homestock.db
-    volumes:
-      - homestock-data:/data
+      - DATABASE_URL=mysql+pymysql://homestock:${DB_PASSWORD}@db:3306/homestock
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       - "8100:8100"
     labels:
@@ -16,6 +39,3 @@ services:
       - "traefik.http.routers.homestock.entrypoints=websecure"
       - "traefik.http.routers.homestock.tls=true"
       - "traefik.http.services.homestock.loadbalancer.server.port=8100"
-
-volumes:
-  homestock-data:
