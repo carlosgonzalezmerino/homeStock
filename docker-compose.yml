@@ -15,7 +15,7 @@ services:
       - "traefik.http.routers.homestock.rule=Host(`192.168.95.50`)"
       - "traefik.http.routers.homestock.entrypoints=websecure"
       - "traefik.http.routers.homestock.tls=true"
-      - "traefik.http.services.homestock.loadbalancer.server.port=8000"
+      - "traefik.http.services.homestock.loadbalancer.server.port=8100"
 
 volumes:
   homestock-data:
