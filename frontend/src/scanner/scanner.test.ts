@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { BarcodeCameraScanner, isDecodeDue, ZXING_DECODE_INTERVAL_MS } from "./BarcodeCameraScanner";
+import {
+  BarcodeCameraScanner,
+  isDecodeDue,
+  REPEAT_SUPPRESSION_MS,
+  ZXING_DECODE_INTERVAL_MS,
+} from "./BarcodeCameraScanner";
 import { createBarcodeDetector, FORMAT_CANDIDATES } from "./barcodeDetector";
 import { createCallbacks, fakeStream, fakeTrack, makeVideo } from "./testDoubles";
 
@@ -261,5 +266,96 @@ describe("isDecodeDue", () => {
 
   it("test_isDecodeDue_atInterval_returnsTrue", () => {
     expect(isDecodeDue(1000 + ZXING_DECODE_INTERVAL_MS, 1000)).toBe(true);
+  });
+});
+
+describe("BarcodeCameraScanner continuous mode", () => {
+  /** Starts a scanner whose continuous flag the test controls, with a clock it controls too. */
+  async function startContinuous(initiallyContinuous = true) {
+    const track = fakeTrack();
+    vi.stubGlobal("navigator", { mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(fakeStream(track)) } });
+    const state = { continuous: initiallyContinuous, now: 0 };
+    vi.spyOn(performance, "now").mockImplementation(() => state.now);
+    const callbacks = createCallbacks();
+    const scanner = new BarcodeCameraScanner({ ...callbacks.options, isContinuous: () => state.continuous });
+    await scanner.start(makeVideo());
+    return { scanner, callbacks, track, state };
+  }
+
+  /** Shows a code to the camera for one frame, `afterMs` after the previous call. */
+  async function show(state: { now: number }, code: string | null, afterMs = 100) {
+    state.now += afterMs;
+    detectResults = code === null ? [] : [{ rawValue: code }];
+    await runFrames(1);
+  }
+
+  it("test_continuous_codeFound_reportsItAndKeepsTheCameraOn", async () => {
+    const { callbacks, track, state } = await startContinuous();
+    await show(state, "8410376003139");
+    expect(callbacks.detected).toEqual(["8410376003139"]);
+    expect(track.stop).not.toHaveBeenCalled();
+    expect(frameQueue).toHaveLength(1);
+  });
+
+  it("test_continuous_sameCodeHeldInView_countsOnce", async () => {
+    const { callbacks, state } = await startContinuous();
+    for (let frame = 0; frame < 5; frame++) await show(state, "A");
+    expect(callbacks.detected).toEqual(["A"]);
+  });
+
+  it("test_continuous_sameCodeAfterBeingOutOfSight_countsAgain", async () => {
+    const { callbacks, state } = await startContinuous();
+    await show(state, "A");
+    await show(state, "A", REPEAT_SUPPRESSION_MS + 1);
+    expect(callbacks.detected).toEqual(["A", "A"]);
+  });
+
+  it("test_continuous_everySightingRenewsTheWindow", async () => {
+    const { callbacks, state } = await startContinuous();
+    const step = REPEAT_SUPPRESSION_MS - 100;
+    await show(state, "A");
+    await show(state, "A", step);
+    await show(state, "A", step);
+    expect(callbacks.detected).toEqual(["A"]);
+  });
+
+  it("test_continuous_differentCodeRightAfter_isReportedAtOnce", async () => {
+    const { callbacks, state } = await startContinuous();
+    await show(state, "A");
+    await show(state, "B", 50);
+    expect(callbacks.detected).toEqual(["A", "B"]);
+  });
+
+  it("test_continuous_framesWithoutCode_doNotReportAnything", async () => {
+    const { callbacks, state } = await startContinuous();
+    await show(state, null);
+    await show(state, null);
+    expect(callbacks.detected).toEqual([]);
+  });
+
+  it("test_continuous_stopAndRestart_forgetsTheLastCode", async () => {
+    const { scanner, callbacks, state } = await startContinuous();
+    await show(state, "A");
+    scanner.stop();
+    frameQueue = []; // a real cancelAnimationFrame would have dropped the pending frame
+    await scanner.start(makeVideo());
+    await show(state, "A", 10);
+    expect(callbacks.detected).toEqual(["A", "A"]);
+  });
+
+  it("test_continuous_switchedOffWhileRunning_nextCodeStopsTheCamera", async () => {
+    const { callbacks, track, state } = await startContinuous();
+    await show(state, "A");
+    state.continuous = false;
+    await show(state, "B");
+    expect(callbacks.detected).toEqual(["A", "B"]);
+    expect(track.stop).toHaveBeenCalledOnce();
+  });
+
+  it("test_continuous_notRequested_stillStopsAfterTheFirstCode", async () => {
+    const { callbacks, track, state } = await startContinuous(false);
+    await show(state, "A");
+    expect(callbacks.detected).toEqual(["A"]);
+    expect(track.stop).toHaveBeenCalledOnce();
   });
 });

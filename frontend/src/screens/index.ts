@@ -6,3 +6,5 @@ export { ManualEntry } from "./ManualEntry";
 export { Settings } from "./Settings";
 export { CustomEntry } from "./CustomEntry";
 export { ShoppingList } from "./ShoppingList";
+export { ReviewPurchase } from "./ReviewPurchase";
+export { Review } from "./Review";

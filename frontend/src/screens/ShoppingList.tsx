@@ -27,7 +27,11 @@ function useRegisterPurchases() {
     for (const item of items) {
       const nextQuantity = roundQuantity(item.quantity + suggestedPurchase(item.quantity, item.threshold));
       try {
-        await patch.mutateAsync({ ean: item.ean, body: { quantity: nextQuantity } });
+        await patch.mutateAsync({
+          ean: item.ean,
+          body: { quantity: nextQuantity, reason: "purchase" },
+          source: "shopping_list",
+        });
       } catch {
         failedEans.push(item.ean);
       }

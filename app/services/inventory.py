@@ -1,9 +1,20 @@
+from dataclasses import dataclass
 from datetime import date
 
-from app.constants import FREEZER_LOCATION
-from app.models import InventoryItem, Product
+from app.constants import (
+    FREEZER_LOCATION,
+    REASON_ADJUST,
+    REASON_INITIAL,
+    REASON_REMOVED,
+    SOURCE_APP,
+)
+from app.models import InventoryItem, Product, StockMovement
 from app.repositories.inventory import InventoryRepository
+from app.repositories.movements import MovementRepository
 from app.repositories.products import ProductRepository
+
+# Decimals kept when comparing quantities, so float noise never makes a fake movement.
+QUANTITY_PRECISION = 4
 
 FREEZER_FIELDS_MESSAGE = (
     "El cajón y la fecha de congelación solo se aplican a productos del congelador"
@@ -20,6 +31,21 @@ class AlreadyTrackedError(Exception):
 
 class FreezerFieldsError(Exception):
     """Raised when a drawer or a frozen date is given outside the freezer."""
+
+
+@dataclass(frozen=True)
+class MovementContext:
+    """Why and where a stock change came from, so it can be written in the diary.
+
+    Attributes:
+        reason: Why the stock changed. `None` means a plain correction (`adjust`).
+        source: Where the change came from (`app`, `scan`, `device`, ...).
+        undoes_id: The movement this change reverts, when it is an undo.
+    """
+
+    reason: str | None = None
+    source: str = SOURCE_APP
+    undoes_id: int | None = None
 
 
 def today() -> date:
@@ -108,19 +134,29 @@ def _plan_update(
 
 
 class InventoryService:
-    """Business rules for the inventory: tracking, editing and the shopping list."""
+    """Business rules for the inventory: tracking, editing and the stock diary.
+
+    Every change of `quantity` also leaves one row in `stock_movements`. The inventory
+    row is written first and the movement second, so a crash between them leaves the
+    diary behind the truth. `scripts/check_movements.py` finds that.
+    """
 
     def __init__(
-        self, inventory: InventoryRepository, products: ProductRepository
+        self,
+        inventory: InventoryRepository,
+        products: ProductRepository,
+        movements: MovementRepository,
     ) -> None:
         """Creates the service.
 
         Args:
             inventory: Access to the inventory rows.
             products: Access to the product catalogue.
+            movements: Access to the diary of stock changes.
         """
         self._inventory = inventory
         self._products = products
+        self._movements = movements
 
     def list_items(self, low_only: bool = False) -> list[tuple[InventoryItem, Product]]:
         """Lists inventory items together with their product.
@@ -139,6 +175,17 @@ class InventoryService:
                 result.append((item, product))
         return result
 
+    def get_item(self, ean: str) -> InventoryItem | None:
+        """Finds the stock row of a product.
+
+        Args:
+            ean: The product's barcode.
+
+        Returns:
+            The row, or `None` when the product is not tracked.
+        """
+        return self._inventory.get(ean)
+
     def start_tracking(
         self,
         ean: str,
@@ -149,6 +196,7 @@ class InventoryService:
         drawer: int | None = None,
         frozen_at: date | None = None,
         notes: str | None = None,
+        source: str = SOURCE_APP,
     ) -> InventoryItem:
         """Starts tracking a product that is in the catalog.
 
@@ -161,6 +209,7 @@ class InventoryService:
             drawer: The freezer drawer, only for freezer items.
             frozen_at: The frozen date, only for freezer items. Defaults to today.
             notes: A free-text note.
+            source: Where the request came from, for the diary.
 
         Returns:
             The stored inventory item.
@@ -175,7 +224,7 @@ class InventoryService:
         if self._inventory.get(ean) is not None:
             raise AlreadyTrackedError(ean)
         freezer_fields = _new_item_freezer_fields(location, drawer, frozen_at)
-        return self._inventory.create(
+        item = self._inventory.create(
             InventoryItem(
                 ean=ean,
                 quantity=quantity,
@@ -186,13 +235,33 @@ class InventoryService:
                 **freezer_fields,
             )
         )
+        self._record(ean, quantity, item.quantity, REASON_INITIAL, source)
+        return item
 
-    def update(self, ean: str, fields: dict[str, object]) -> InventoryItem | None:
+    def last_movement(self, ean: str) -> StockMovement | None:
+        """Finds the latest movement of a product.
+
+        Args:
+            ean: The product's barcode.
+
+        Returns:
+            The most recent movement, or `None` when the product has none.
+        """
+        found = self._movements.find(ean, None, limit=1, offset=0)
+        return found[0] if found else None
+
+    def update(
+        self,
+        ean: str,
+        fields: dict[str, object],
+        context: MovementContext | None = None,
+    ) -> InventoryItem | None:
         """Applies a partial edit to a tracked item.
 
         Args:
             ean: The product's barcode.
             fields: The values to change. Only the keys that were sent are present.
+            context: Why and from where the change comes, for the diary.
 
         Returns:
             The updated item, or `None` when the product is not tracked.
@@ -201,18 +270,108 @@ class InventoryService:
             FreezerFieldsError: When the edit leaves a freezer field set
                 outside the freezer.
         """
-        current = self._inventory.get(ean)
-        if current is None:
-            return None
-        return self._inventory.update_fields(ean, _plan_update(current, fields))
+        result = self._apply(ean, fields, context or MovementContext())
+        return None if result is None else result[0]
 
-    def stop_tracking(self, ean: str) -> bool:
-        """Removes a product from the inventory.
+    def adjust(
+        self, ean: str, delta: float, context: MovementContext
+    ) -> tuple[InventoryItem, StockMovement | None] | None:
+        """Adds or takes units from a tracked item. The stock never goes below 0.
 
         Args:
             ean: The product's barcode.
+            delta: Units to add (positive) or take out (negative).
+            context: Why and from where the change comes, for the diary.
+
+        Returns:
+            The updated item and the movement that was written (`None` when nothing
+            changed), or `None` when the product is not tracked.
+        """
+        current = self._inventory.get(ean)
+        if current is None:
+            return None
+        target = max(round(current.quantity + delta, QUANTITY_PRECISION), 0.0)
+        return self._apply(ean, {"quantity": target}, context)
+
+    def stop_tracking(self, ean: str, source: str = SOURCE_APP) -> bool:
+        """Removes a product from the inventory. Its history is kept.
+
+        Args:
+            ean: The product's barcode.
+            source: Where the request came from, for the diary.
 
         Returns:
             `True` when the item existed and was removed.
         """
+        current = self._inventory.get(ean)
+        if current is None:
+            return False
+        if current.quantity > 0:
+            self._record(ean, -current.quantity, 0.0, REASON_REMOVED, source)
         return self._inventory.delete(ean)
+
+    def _apply(
+        self, ean: str, fields: dict[str, object], context: MovementContext
+    ) -> tuple[InventoryItem, StockMovement | None] | None:
+        """Writes an edit and, when the quantity changed, its movement.
+
+        Args:
+            ean: The product's barcode.
+            fields: The values to change.
+            context: Why and from where the change comes.
+
+        Returns:
+            The updated item and the movement written, or `None` when not tracked.
+        """
+        current = self._inventory.get(ean)
+        if current is None:
+            return None
+        before = current.quantity
+        item = self._inventory.update_fields(ean, _plan_update(current, fields))
+        if item is None:
+            return None
+        movement = self._record(
+            ean,
+            item.quantity - before,
+            item.quantity,
+            context.reason or REASON_ADJUST,
+            context.source,
+            context.undoes_id,
+        )
+        return item, movement
+
+    def _record(
+        self,
+        ean: str,
+        delta: float,
+        quantity_after: float,
+        reason: str,
+        source: str,
+        undoes_id: int | None = None,
+    ) -> StockMovement | None:
+        """Writes one movement, unless the stock did not change.
+
+        Args:
+            ean: The product's barcode.
+            delta: The change, with sign.
+            quantity_after: The stock after the change.
+            reason: Why it changed.
+            source: Where the change came from.
+            undoes_id: The movement this one reverts, if any.
+
+        Returns:
+            The stored movement, or `None` when `delta` rounds to 0.
+        """
+        rounded = round(delta, QUANTITY_PRECISION)
+        if rounded == 0:
+            return None
+        return self._movements.add(
+            StockMovement(
+                ean=ean,
+                delta=rounded,
+                quantity_after=quantity_after,
+                reason=reason,
+                source=source,
+                undoes_id=undoes_id,
+            )
+        )

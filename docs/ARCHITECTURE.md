@@ -22,7 +22,7 @@ The backend has three layers. Each one only talks to the next one down.
 | Layer | Folder | Responsibility |
 |---|---|---|
 | Routers | `app/api/` | HTTP only: parse the request, call a service, map errors to status codes. No business rules. |
-| Services | `app/services/` | Business rules: product resolution, stock rules, freezer rules, the shopping list. |
+| Services | `app/services/` | Business rules: product resolution, stock rules, freezer rules, the diary of stock changes, scanning, the weekly review, the shopping list. |
 | Repositories | `app/repositories/` | Database access. The only layer that builds queries. |
 
 Dependencies are wired with FastAPI `Depends` in `app/api/deps.py`, which is also where the active
@@ -76,6 +76,32 @@ External sources never break a request. The service layer raises specific except
 (`ProductNotFoundError`, `AlreadyTrackedError`, `FreezerFieldsError`) and the routers turn them
 into the statuses above.
 
+### The diary of stock changes
+
+`InventoryService` is the **only** place that changes a quantity, and every change leaves one row
+in `stock_movements` (see [DATABASE.md](DATABASE.md)). That is a rule of the project: a new feature
+that changes stock goes through `InventoryService.update`, `adjust`, `start_tracking` or
+`stop_tracking`, never straight to the repository, or the history silently loses it.
+
+```text
+router ──► InventoryService ──► InventoryRepository   (the stock row, the truth)
+                 │
+                 └──────────► MovementRepository      (its diary, insert-only)
+
+ScanService ──► ProductResolver + InventoryService    (POST /api/scan: one unit in or out)
+MovementService ──► MovementRepository + InventoryService   (list, undo)
+ReviewService ──► the three repositories, read only   (what the weekly review asks about)
+```
+
+- `MovementContext(reason, source, undoes_id)` travels with a change. The router takes `reason`
+  out of the `PATCH` body before the fields reach the repository, because it is not a column.
+- **Undo writes a compensating movement** and never deletes. Undoing the `initial` movement of a
+  product that ends at 0 stops tracking it.
+- The ORM hands back the *same object* it then updates, so a value needed from before a change
+  (such as the previous quantity) must be read **before** calling the service. A test caught this.
+- The weekly review needs `inventory_items.checked_at` for "it is still there", which is not a
+  movement because a movement's `delta` is never 0.
+
 ## Data model
 
 See [DATABASE.md](DATABASE.md) for every column and the migration history.
@@ -83,6 +109,8 @@ See [DATABASE.md](DATABASE.md) for every column and the migration history.
 ```text
 products 1 ──── 0..1 inventory_items        off_products   (imported, rebuilt by a script)
  (catalogue)          (stock, unique ean)     (read only, step 2 of the resolution)
+     1
+     └──── 0..n stock_movements               (the diary; survives removing the stock row)
 ```
 
 There is **one stock row per product**. Having the same product in two locations is a known
@@ -101,7 +129,9 @@ React Router 6. The full structure is in [`frontend/README.md`](../frontend/READ
 | `/despensa` | Pantry | Pantry and freezer tabs, search, inline quantity buttons. The freezer tab shows how long ago each item was frozen and can sort by that age. |
 | `/despensa/:ean` | Product detail, `manage` mode | Edit a product that is in the pantry. |
 | `/lista` | Shopping list | What is low on stock, with the amount to buy. Check items off while shopping, then register the batch in one go. |
-| `/scan` | Scan | Camera, typed code, link to "Añadir sin código". |
+| `/scan` | Scan | Camera, mode selector (**Detalle**, **Compra**, **Gastar**), typed code, link to "Añadir sin código". See [the scan modes](#the-scan-modes). |
+| `/scan/revisar` | Review purchase | What a shopping session added, what is new, and the codes nobody knew. |
+| `/repaso` | Weekly review | One card at a time: is the registered stock still true? Opened from a card on the dashboard. |
 | `/scan/:ean` | Product detail, `scan` mode | Register a purchase after a scan. |
 | `/scan/:ean/manual` | Manual entry | Product the catalogue does not know. |
 | `/custom-entry` | Custom entry | Product without a barcode. |
@@ -144,6 +174,23 @@ logs a warning.
 Quantities are typed as text and parsed with `parseDecimal`, which accepts `0,5` and `0.5` and
 rejects negatives and more than two decimals. They are shown with `formatQuantity`, which uses a
 decimal comma and no thousands separator, so what the user sees can always be typed back.
+
+### The scan modes
+
+The scan screen has three modes. **Detalle** is the original flow: a code opens the product and
+the camera stops. In **Compra** and **Gastar** the camera stays on and each code calls
+`POST /api/scan` (one unit in or out), answers with a beep, a vibration and a sheet with **Deshacer**.
+
+- `BarcodeCameraScanner` has a continuous mode, chosen per reading through `isContinuous`, so
+  changing mode never restarts the camera. The same code seen again within 1.5 s of its last
+  sighting is ignored; every sighting renews the window.
+- **`consume` is never remembered** between visits (`utils/scanMode.ts`), is shown in the warning
+  colour instead of the action green, and has a permanent banner. Taking units out by mistake is
+  worse than adding them.
+- The shopping session (`hooks/usePurchaseSession.ts`) persists to `localStorage` **synchronously**,
+  not from an effect: "Terminar" clears it and leaves the screen in the same click.
+- The weekly review freezes its list on load, because each answer refreshes the stock queries and
+  the list would otherwise shrink while the user walks through it.
 
 ### The scanner
 

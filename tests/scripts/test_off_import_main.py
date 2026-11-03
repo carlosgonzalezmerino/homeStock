@@ -3,6 +3,7 @@ from pathlib import Path
 from sqlalchemy import text
 
 from app.db import get_engine
+from app.migrations import head_revision
 from scripts.off_import import main
 
 FIXTURE = str(Path(__file__).parent / "fixtures" / "off_sample.csv")
@@ -16,7 +17,7 @@ def test_main_on_a_new_database_applies_migrations_before_importing(
     with get_engine(url).connect() as connection:
         version = connection.execute(text("select version_num from alembic_version"))
         imported = connection.execute(text("select count(*) from off_products"))
-        assert (version.scalar_one(), imported.scalar_one()) == ("0002", 1)
+        assert (version.scalar_one(), imported.scalar_one()) == (head_revision(), 1)
     assert "Imported 1 OFF products" in capsys.readouterr().out
 
 

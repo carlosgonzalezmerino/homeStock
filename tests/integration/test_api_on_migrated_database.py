@@ -15,7 +15,7 @@ from sqlmodel import Session
 
 from app import db as db_module
 from app.main import create_app
-from app.migrations import upgrade_to_head
+from app.migrations import head_revision, upgrade_to_head
 from app.models import OffProduct
 
 OFF_EAN = "8410376003139"
@@ -116,4 +116,4 @@ def test_migrated_database_records_the_head_revision(migrated) -> None:
     _, path = migrated
     with create_engine(f"sqlite:///{path}").connect() as connection:
         version = connection.execute(text("select version_num from alembic_version"))
-        assert version.scalar_one() == "0002"
+        assert version.scalar_one() == head_revision()

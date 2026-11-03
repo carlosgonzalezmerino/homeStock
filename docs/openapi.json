@@ -176,7 +176,7 @@
         "type": "object"
       },
       "InventoryPatch": {
-        "description": "A partial edit of a stock row.\n\nQuantity, threshold and unit can be changed but never cleared.",
+        "description": "A partial edit of a stock row.\n\nQuantity, threshold and unit can be changed but never cleared. `reason` is not a\ncolumn: it says why the quantity changed and goes to the diary of stock changes.",
         "properties": {
           "drawer": {
             "anyOf": [
@@ -241,6 +241,23 @@
             ],
             "title": "Quantity"
           },
+          "reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "purchase",
+                  "consume",
+                  "waste",
+                  "adjust"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
           "threshold": {
             "anyOf": [
               {
@@ -288,6 +305,78 @@
           "low"
         ],
         "title": "InventoryWithProductOut",
+        "type": "object"
+      },
+      "MovementOut": {
+        "description": "One change of the stock of a product, as the diary returns it.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "delta": {
+            "title": "Delta",
+            "type": "number"
+          },
+          "ean": {
+            "title": "Ean",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "quantity_after": {
+            "title": "Quantity After",
+            "type": "number"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "undoes_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Undoes Id"
+          },
+          "undone": {
+            "default": false,
+            "title": "Undone",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "ean",
+          "delta",
+          "quantity_after",
+          "reason",
+          "source",
+          "created_at"
+        ],
+        "title": "MovementOut",
         "type": "object"
       },
       "ProductCreate": {
@@ -780,6 +869,235 @@
         "title": "ProductPatch",
         "type": "object"
       },
+      "ReviewCandidateOut": {
+        "description": "A product the weekly review asks about.",
+        "properties": {
+          "brand": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand"
+          },
+          "days_since_activity": {
+            "title": "Days Since Activity",
+            "type": "integer"
+          },
+          "ean": {
+            "title": "Ean",
+            "type": "string"
+          },
+          "estimated_empty_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Empty On"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "number"
+          },
+          "reason": {
+            "enum": [
+              "overdue",
+              "stale"
+            ],
+            "title": "Reason",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ean",
+          "name",
+          "quantity",
+          "unit",
+          "reason",
+          "days_since_activity"
+        ],
+        "title": "ReviewCandidateOut",
+        "type": "object"
+      },
+      "ScanRequest": {
+        "description": "A code read by a scanner, and what to do with it.",
+        "properties": {
+          "ean": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Ean",
+            "type": "string"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "enum": [
+                  "pantry",
+                  "freezer"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "mode": {
+            "enum": [
+              "purchase",
+              "consume"
+            ],
+            "title": "Mode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ean",
+          "mode"
+        ],
+        "title": "ScanRequest",
+        "type": "object"
+      },
+      "ScanResultOut": {
+        "description": "What happened when a code was scanned. Every outcome is a normal 200 answer.",
+        "properties": {
+          "ean": {
+            "title": "Ean",
+            "type": "string"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          },
+          "mode": {
+            "enum": [
+              "purchase",
+              "consume"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "movement_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Movement Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "quantity_after": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity After"
+          },
+          "quantity_before": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity Before"
+          },
+          "status": {
+            "enum": [
+              "applied",
+              "created",
+              "already_empty",
+              "not_tracked",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          }
+        },
+        "required": [
+          "status",
+          "mode",
+          "ean"
+        ],
+        "title": "ScanResultOut",
+        "type": "object"
+      },
       "ShoppingListItemOut": {
         "description": "One line of the shopping list.",
         "properties": {
@@ -944,8 +1262,26 @@
         ]
       },
       "post": {
-        "description": "Starts tracking a product that is in the catalogue.\n\nArgs:\n    payload: The stock to store.\n    service: The inventory service.\n\nReturns:\n    The stored item.\n\nRaises:\n    HTTPException: 404 when the product is not in the catalogue, 409 when it is\n        already tracked, 422 when a freezer-only field is sent outside the freezer.",
+        "description": "Starts tracking a product that is in the catalogue.\n\nArgs:\n    payload: The stock to store.\n    service: The inventory service.\n    source: Where the request comes from, from the `X-HomeStock-Source` header.\n\nReturns:\n    The stored item.\n\nRaises:\n    HTTPException: 404 when the product is not in the catalogue, 409 when it is\n        already tracked, 422 when a freezer-only field is sent outside the freezer.",
         "operationId": "create_inventory_api_inventory_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-HomeStock-Source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Homestock-Source"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -986,7 +1322,7 @@
     },
     "/api/inventory/{ean}": {
       "delete": {
-        "description": "Stops tracking a product. Its catalogue entry is kept.\n\nArgs:\n    ean: The product's barcode.\n    service: The inventory service.\n\nReturns:\n    An empty 204 response.\n\nRaises:\n    HTTPException: 404 when the product is not tracked.",
+        "description": "Stops tracking a product. Its catalogue entry and its history are kept.\n\nArgs:\n    ean: The product's barcode.\n    service: The inventory service.\n    source: Where the request comes from, from the `X-HomeStock-Source` header.\n\nReturns:\n    An empty 204 response.\n\nRaises:\n    HTTPException: 404 when the product is not tracked.",
         "operationId": "delete_inventory_api_inventory__ean__delete",
         "parameters": [
           {
@@ -996,6 +1332,22 @@
             "schema": {
               "title": "Ean",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-HomeStock-Source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Homestock-Source"
             }
           }
         ],
@@ -1020,7 +1372,7 @@
         ]
       },
       "patch": {
-        "description": "Edits the stock of a tracked product. Only the fields that are sent change.\n\nArgs:\n    ean: The product's barcode.\n    payload: The fields to change.\n    service: The inventory service.\n\nReturns:\n    The updated item.\n\nRaises:\n    HTTPException: 404 when the product is not tracked, 422 when a freezer-only\n        field would stay set outside the freezer.",
+        "description": "Edits the stock of a tracked product. Only the fields that are sent change.\n\n`reason` is not a column: it says why the quantity changed and goes to the diary.\n\nArgs:\n    ean: The product's barcode.\n    payload: The fields to change.\n    service: The inventory service.\n    source: Where the request comes from, from the `X-HomeStock-Source` header.\n\nReturns:\n    The updated item.\n\nRaises:\n    HTTPException: 404 when the product is not tracked, 422 when a freezer-only\n        field would stay set outside the freezer.",
         "operationId": "patch_inventory_api_inventory__ean__patch",
         "parameters": [
           {
@@ -1030,6 +1382,22 @@
             "schema": {
               "title": "Ean",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-HomeStock-Source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Homestock-Source"
             }
           }
         ],
@@ -1068,6 +1436,172 @@
         "summary": "Patch Inventory",
         "tags": [
           "inventory"
+        ]
+      }
+    },
+    "/api/movements": {
+      "get": {
+        "description": "Lists the diary of stock changes, the most recent first.\n\nArgs:\n    ean: Keep only this product's movements.\n    reason: Keep only movements with this reason.\n    limit: Most rows to return.\n    offset: Rows to skip.\n    service: The movement service.\n\nReturns:\n    The movements, each saying whether it was undone.",
+        "operationId": "list_movements_api_movements_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ean",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reason",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Reason"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MovementOut"
+                  },
+                  "title": "Response List Movements Api Movements Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Movements",
+        "tags": [
+          "movements"
+        ]
+      }
+    },
+    "/api/movements/last": {
+      "get": {
+        "description": "Returns the most recent movement.\n\nArgs:\n    service: The movement service.\n\nReturns:\n    The latest movement, or `null` when the diary is empty.",
+        "operationId": "last_movement_api_movements_last_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/MovementOut"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Last Movement Api Movements Last Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Last Movement",
+        "tags": [
+          "movements"
+        ]
+      }
+    },
+    "/api/movements/{movement_id}/undo": {
+      "post": {
+        "description": "Reverts a movement by writing a compensating one. Nothing is deleted.\n\nArgs:\n    movement_id: The movement to revert.\n    service: The movement service.\n\nReturns:\n    The compensating movement.\n\nRaises:\n    HTTPException: 404 when the movement does not exist; 409 when it was already\n        undone, its product is no longer tracked, or the stock would not change.",
+        "operationId": "undo_movement_api_movements__movement_id__undo_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "movement_id",
+            "required": true,
+            "schema": {
+              "title": "Movement Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovementOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Undo Movement",
+        "tags": [
+          "movements"
         ]
       }
     },
@@ -1294,6 +1828,128 @@
         "summary": "Resolve Ean",
         "tags": [
           "resolve"
+        ]
+      }
+    },
+    "/api/review": {
+      "get": {
+        "description": "Lists the products the weekly review asks about, in asking order.\n\nArgs:\n    service: The review service.\n\nReturns:\n    At most ten candidates; empty when there is not enough history yet.",
+        "operationId": "list_review_api_review_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReviewCandidateOut"
+                  },
+                  "title": "Response List Review Api Review Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Review",
+        "tags": [
+          "review"
+        ]
+      }
+    },
+    "/api/review/{ean}/confirm": {
+      "post": {
+        "description": "Records that a product's stock was checked and is real. No movement is written.\n\nArgs:\n    ean: The product's barcode.\n    service: The review service.\n\nReturns:\n    An empty 204 response.\n\nRaises:\n    HTTPException: 404 when the product is not tracked.",
+        "operationId": "confirm_review_api_review__ean__confirm_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ean",
+            "required": true,
+            "schema": {
+              "title": "Ean",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Confirm Review",
+        "tags": [
+          "review"
+        ]
+      }
+    },
+    "/api/scan": {
+      "post": {
+        "description": "Applies a scanned code: one unit in (`purchase`) or one unit out (`consume`).\n\nEvery outcome is a normal 200 answer, including an unknown code and a consume that\nchanged nothing: the client queues or reports it, it does not handle an exception.\n\nArgs:\n    payload: The code, the mode and, for a new product, where it goes.\n    service: The scan service.\n    source: Where the scan comes from, from the `X-HomeStock-Source` header.\n\nReturns:\n    What happened, and the movement id so the client can undo it.",
+        "operationId": "scan_api_scan_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-HomeStock-Source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Homestock-Source"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanResultOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Scan",
+        "tags": [
+          "scan"
         ]
       }
     },

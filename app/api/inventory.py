@@ -2,7 +2,8 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
-from app.api.deps import get_inventory_service
+from app.api.deps import get_inventory_service, get_source
+from app.constants import SOURCE_APP
 from app.schemas import (
     InventoryCreate,
     InventoryOut,
@@ -14,6 +15,7 @@ from app.services.inventory import (
     AlreadyTrackedError,
     FreezerFieldsError,
     InventoryService,
+    MovementContext,
     ProductNotFoundError,
 )
 
@@ -63,12 +65,14 @@ def list_inventory(
 def create_inventory(
     payload: InventoryCreate,
     service: InventoryService = Depends(get_inventory_service),
+    source: str | None = Depends(get_source),
 ) -> InventoryOut:
     """Starts tracking a product that is in the catalogue.
 
     Args:
         payload: The stock to store.
         service: The inventory service.
+        source: Where the request comes from, from the `X-HomeStock-Source` header.
 
     Returns:
         The stored item.
@@ -78,7 +82,9 @@ def create_inventory(
             already tracked, 422 when a freezer-only field is sent outside the freezer.
     """
     try:
-        item = service.start_tracking(**payload.model_dump())
+        item = service.start_tracking(
+            **payload.model_dump(), source=source or SOURCE_APP
+        )
     except ProductNotFoundError as exc:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail={"ean": payload.ean}
@@ -97,13 +103,17 @@ def patch_inventory(
     ean: str,
     payload: InventoryPatch,
     service: InventoryService = Depends(get_inventory_service),
+    source: str | None = Depends(get_source),
 ) -> InventoryOut:
     """Edits the stock of a tracked product. Only the fields that are sent change.
+
+    `reason` is not a column: it says why the quantity changed and goes to the diary.
 
     Args:
         ean: The product's barcode.
         payload: The fields to change.
         service: The inventory service.
+        source: Where the request comes from, from the `X-HomeStock-Source` header.
 
     Returns:
         The updated item.
@@ -112,8 +122,10 @@ def patch_inventory(
         HTTPException: 404 when the product is not tracked, 422 when a freezer-only
             field would stay set outside the freezer.
     """
+    fields = payload.model_dump(exclude_unset=True)
+    context = MovementContext(fields.pop("reason", None), source or SOURCE_APP)
     try:
-        item = service.update(ean, payload.model_dump(exclude_unset=True))
+        item = service.update(ean, fields, context)
     except FreezerFieldsError as exc:
         raise _freezer_fields_error(exc) from exc
     if item is None:
@@ -123,13 +135,16 @@ def patch_inventory(
 
 @router.delete("/{ean}", status_code=HTTPStatus.NO_CONTENT)
 def delete_inventory(
-    ean: str, service: InventoryService = Depends(get_inventory_service)
+    ean: str,
+    service: InventoryService = Depends(get_inventory_service),
+    source: str | None = Depends(get_source),
 ) -> Response:
-    """Stops tracking a product. Its catalogue entry is kept.
+    """Stops tracking a product. Its catalogue entry and its history are kept.
 
     Args:
         ean: The product's barcode.
         service: The inventory service.
+        source: Where the request comes from, from the `X-HomeStock-Source` header.
 
     Returns:
         An empty 204 response.
@@ -137,6 +152,6 @@ def delete_inventory(
     Raises:
         HTTPException: 404 when the product is not tracked.
     """
-    if not service.stop_tracking(ean):
+    if not service.stop_tracking(ean, source or SOURCE_APP):
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail={"ean": ean})
     return Response(status_code=HTTPStatus.NO_CONTENT)

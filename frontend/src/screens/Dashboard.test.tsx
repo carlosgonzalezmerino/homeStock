@@ -64,3 +64,53 @@ describe("Dashboard — alerts for custom products", () => {
     expect(await screen.findByText("MANAGE_DETAIL")).toBeInTheDocument();
   });
 });
+
+/** Renders the dashboard with the review screen it can lead to. */
+function renderDashboard() {
+  return renderInApp(
+    <Routes>
+      <Route path="/" element={<Dashboard />} />
+      <Route path="/repaso" element={<div>REVIEW_SCREEN</div>} />
+    </Routes>,
+    ["/"],
+  );
+}
+
+describe("Dashboard — weekly review entry", () => {
+  it("test_dashboard_noReviewCandidates_doesNotShowTheEntry", async () => {
+    server.use(http.get("/api/inventory", () => HttpResponse.json([])));
+    renderDashboard();
+    await screen.findByText("Sin alertas de stock");
+    expect(screen.queryByText(/Repaso semanal/i)).not.toBeInTheDocument();
+  });
+
+  it("test_dashboard_withReviewCandidates_showsTheCountAndOpensTheReview", async () => {
+    server.use(
+      http.get("/api/inventory", () => HttpResponse.json([])),
+      http.get("/api/review", () => HttpResponse.json([{ ean: "1" }, { ean: "2" }, { ean: "3" }])),
+    );
+    renderDashboard();
+    expect(await screen.findByText("3 productos · 1 minuto")).toBeInTheDocument();
+    fireEvent.click(screen.getByText(/Comprueba si lo que dice la despensa/));
+    expect(await screen.findByText("REVIEW_SCREEN")).toBeInTheDocument();
+  });
+
+  it("test_dashboard_oneCandidate_usesTheSingularWord", async () => {
+    server.use(
+      http.get("/api/inventory", () => HttpResponse.json([])),
+      http.get("/api/review", () => HttpResponse.json([{ ean: "1" }])),
+    );
+    renderDashboard();
+    expect(await screen.findByText("1 producto · 1 minuto")).toBeInTheDocument();
+  });
+
+  it("test_dashboard_reviewFailsToLoad_hidesTheEntryAndKeepsTheRest", async () => {
+    server.use(
+      http.get("/api/inventory", () => HttpResponse.json([])),
+      http.get("/api/review", () => HttpResponse.json({}, { status: 500 })),
+    );
+    renderDashboard();
+    expect(await screen.findByText("Sin alertas de stock")).toBeInTheDocument();
+    expect(screen.queryByText(/Repaso semanal/i)).not.toBeInTheDocument();
+  });
+});

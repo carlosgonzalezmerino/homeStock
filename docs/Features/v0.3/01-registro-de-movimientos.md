@@ -1,7 +1,7 @@
 # Spec 01 · Registro de movimientos
 
 **Cubre:** U-01 (= N-04 de la v0.2)
-**Estado:** escrita, sin implementar.
+**Estado:** implementada (2026-11-03). Ver [Verificación](#verificación-2026-11-03).
 **Toca la BD:** sí, migración `0003`.
 **Depende de:** nada.
 **Bloquea a:** las specs 02, 03 y 04 enteras, y a U-05, U-08, N-10 a N-14.
@@ -92,6 +92,7 @@ porque definirlo después obliga a reinterpretar el historial ya grabado.
 | `device` | Un cacharro externo. Reservado para H-01 |
 | `ticket` | Importación de ticket. Reservado para U-07 |
 | `migration` | Lo escribió la migración `0003` |
+| `review` | Lo escribió el repaso semanal (spec 04) |
 | `undo` | Es la reversión de otro movimiento |
 
 ## Comportamiento
@@ -118,15 +119,17 @@ hace `payload.model_dump(exclude_unset=True)` y pasa el diccionario entero a `se
 acaba en `update_fields`. Si `reason` viaja ahí dentro, se intentará escribir una columna que no
 existe.
 
-Hay que **sacarlo del diccionario en el servicio**, antes de `_plan_update`, y tratarlo aparte.
-Tiene test propio (`test_update_with_reason_does_not_write_it_as_a_column`).
+Por eso el **router separa `reason`** del diccionario (`fields.pop("reason", None)`) y lo pasa al
+servicio como argumento propio, dentro de un `MovementContext` (`reason`, `source`, `undoes_id`).
+`service.update(ean, fields, context)` nunca ve `reason` entre los campos a escribir. Tiene test propio
+(`test_patch_inventory_with_reason_does_not_write_it_as_a_column`).
 
 Qué envía cada sitio de la interfaz:
 
 | Dónde | `reason` | `source` |
 |---|---|---|
-| `AddStockCard`, alta nueva | `initial` (lo pone el servicio) | `scan` o `app` |
-| `AddStockCard`, sumar a existente | `purchase` | `scan` o `app` |
+| `AddStockCard`, alta nueva | `initial` (lo pone el servicio) | `app` |
+| `AddStockCard`, sumar a existente | `purchase` | `app` |
 | Stepper de `Pantry.tsx`, «−» | `consume` | `app` |
 | Stepper de `Pantry.tsx`, «+» | `purchase` | `app` |
 | `QuantityCard` del detalle, «Actualizar cantidad» | `adjust` | `app` |
@@ -150,6 +153,13 @@ negocio del recurso, y así ningún esquema de escritura tiene que repetirlo. Si
    el objetivo es que la cantidad vuelva a ser creíble, no castigar al usuario.
 3. Inserta un movimiento nuevo con `delta` invertido, `reason = adjust`, `source = undo` y
    `undoes_id` apuntando al original.
+
+4. **Caso especial: deshacer un `initial`.** Si el movimiento deshecho es un `initial` y el stock
+   resultante es 0, el producto **deja de seguirse** (se borra la fila de inventario, no el historial).
+   Sin esto, deshacer un escaneo equivocado dejaría un producto «agotado» en la lista de la compra.
+5. Si el efecto real sería 0 (el stock ya es 0 y se deshace una entrada), responde `409`: no hay
+   nada que deshacer y un movimiento con `delta = 0` nunca se guarda. Si el producto ya no se sigue
+   (se quitó de la despensa), también `409`: recrearlo perdería su umbral y sus notas.
 
 **La tabla es solo de inserción. Nada se borra ni se modifica, nunca.** Deshacer un deshacer
 funciona solo, porque el segundo movimiento es tan normal como el primero.
@@ -237,3 +247,36 @@ Siguiendo `test_<método>_<escenario>_<resultado>`:
 | **E9** | ¿El «−» del stepper de la despensa es `consume` o `adjust`? | **`consume`.** Es el gesto real de gastar hoy. Si fuese `adjust`, la spec 04 arrancaría sin datos |
 | **E10** | ¿Cuánto historial se guarda? | **Todo.** Un hogar genera del orden de 2.000 filas al año; no hay motivo para podar, y podar destruye justo lo que da valor |
 | E11 | ¿`source` por cabecera o en el cuerpo? | Cabecera, por lo razonado arriba. Si resulta incómodo desde el frontend, pasarlo al cuerpo es un cambio pequeño |
+
+
+## Verificación (2026-11-03)
+
+**Qué se hizo.** Tabla `stock_movements` y `InventoryService` escribiendo el diario en cada cambio
+de cantidad; `MovementService` (listar, último, deshacer); `GET /api/movements`,
+`GET /api/movements/last`, `POST /api/movements/{id}/undo`; `reason` en `PATCH` y cabecera
+`X-HomeStock-Source`; migración `0003` con relleno del pasado; `scripts/check_movements.py`.
+
+**Cómo se comprobó.**
+
+| Comprobación | Resultado |
+|---|---|
+| Backend completo | **271 tests** (151 antes), todos verdes; cobertura **98 %** |
+| Migración `0003` sobre una copia de `homestock.db` real | 18 productos con stock → 18 movimientos `initial`; suma de deltas = suma de stock (74 = 74); 0 fechas alteradas; bajada y subida correctas |
+| `check_movements` sobre esa copia migrada, tras un recorrido real (comprar, gastar, deshacer) | `OK` |
+| Mutaciones deliberadas (escribir delta 0, no escribir `removed`, no parar de seguir al deshacer un `initial`) | Las tres hacen fallar tests; el código se restauró idéntico |
+| `docs/openapi.json` regenerado | El test de contrato pasa |
+
+**Desviaciones respecto a lo escrito arriba.**
+
+- `reason` lo separa el **router**, no el servicio; el servicio lo recibe dentro de un
+  `MovementContext`. El efecto es el mismo y es más simple.
+- Las tarjetas de detalle de la interfaz envían `source = app`, no `scan`: no saben de qué modo vienen.
+- `MovementRepository.list` se llama `find`: un método llamado `list` sombrea al tipo en las anotaciones.
+- Se añadió `app.migrations.head_revision()` y tres tests existentes que tenían `"0002"` escrito a mano
+  lo usan ahora, para no volver a romperse con cada migración.
+
+**Bug encontrado por los tests.** `ScanOutcome.quantity_before` salía igual que `quantity_after`: el ORM
+devuelve el mismo objeto que luego actualiza, y se leía después de escribir. Está arreglado y tiene test.
+
+**No verificado.** La migración `0003` solo se ensayó en **SQLite**. El despliegue real es MariaDB:
+hay que ensayarla sobre una **copia restaurada** del volcado antes de desplegar (`docs/DATABASE.md`).

@@ -257,7 +257,7 @@ it("shows EmptyState when pantry is empty", async () => {
     await screen.findByText("Leche Entera");
     const plusButtons = screen.getAllByRole("button", { name: "＋" });
     fireEvent.click(plusButtons[0]);
-    await waitFor(() => expect(saved).toEqual({ quantity: 6 }));
+    await waitFor(() => expect(saved).toEqual({ quantity: 6, reason: "purchase" }));
     expect(screen.queryByText("ProductDetail")).not.toBeInTheDocument();
   });
 });

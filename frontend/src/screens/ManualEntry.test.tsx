@@ -4,7 +4,7 @@ import { http, HttpResponse } from "msw";
 import { Route, Routes } from "react-router-dom";
 import { server } from "@/test/server";
 import { renderInApp } from "@/test/helpers";
-import { ManualEntry } from "./ManualEntry";
+import { ManualEntry, returnDestination } from "./ManualEntry";
 import { localIsoDate } from "@/utils/date";
 import { QUANTITY_RANGE_MESSAGE, REQUIRED_MESSAGE } from "@/utils/parse";
 import { CONFLICT_MESSAGE, SAVE_ERROR_MESSAGE } from "@/hooks/useProductEditor";
@@ -200,4 +200,22 @@ describe("ManualEntry — scanned code", () => {
     expect(field).toHaveValue(EAN);
     expect(field).toHaveAttribute("readonly");
   });
+});
+
+describe("returnDestination", () => {
+  it("test_returnDestination_noState_returnsThePantry", () => {
+    expect(returnDestination(null)).toBe("/despensa");
+    expect(returnDestination(undefined)).toBe("/despensa");
+  });
+
+  it("test_returnDestination_internalPath_isHonoured", () => {
+    expect(returnDestination({ returnTo: "/scan/revisar" })).toBe("/scan/revisar");
+  });
+
+  it.each(["https://evil.example", "//evil.example", "scan/revisar", 42, null])(
+    "test_returnDestination_unsafeValue_%s_returnsThePantry",
+    (returnTo) => {
+      expect(returnDestination({ returnTo })).toBe("/despensa");
+    },
+  );
 });

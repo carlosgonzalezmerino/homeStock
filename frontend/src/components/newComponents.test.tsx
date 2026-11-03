@@ -126,3 +126,22 @@ describe("Card interaction", () => {
     expect(container.firstChild).toHaveClass("p-4");
   });
 });
+
+describe("SegmentedControl — per-option active style", () => {
+  const options = [
+    { value: "a" as const, label: "Uno" },
+    { value: "b" as const, label: "Dos", activeClass: "bg-tertiary-container" },
+  ];
+
+  it("test_segmentedControl_optionWithoutActiveClass_usesTheAccent", () => {
+    render(<SegmentedControl options={options} value="a" onChange={() => undefined} ariaLabel="x" />);
+    expect(screen.getByRole("tab", { name: "Uno" })).toHaveClass("bg-primary");
+  });
+
+  it("test_segmentedControl_optionWithActiveClass_usesItInsteadOfTheAccent", () => {
+    render(<SegmentedControl options={options} value="b" onChange={() => undefined} ariaLabel="x" />);
+    const tab = screen.getByRole("tab", { name: "Dos" });
+    expect(tab).toHaveClass("bg-tertiary-container");
+    expect(tab).not.toHaveClass("bg-primary");
+  });
+});

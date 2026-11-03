@@ -9,6 +9,8 @@ import {
 } from "@/api/inventory";
 import { createProduct } from "@/api/products";
 import { getShoppingList } from "@/api/shoppingList";
+import { postScan, undoMovement } from "@/api/scan";
+import { confirmReview, getReview } from "@/api/review";
 
 vi.mock("@/api/client");
 
@@ -53,7 +55,12 @@ describe("endpoint modules", () => {
 
   it("patchInventory patches /inventory/{ean}", async () => {
     await patchInventory("x", { quantity: 0 });
-    expect(patch).toHaveBeenCalledWith("/inventory/x", { quantity: 0 });
+    expect(patch).toHaveBeenCalledWith("/inventory/x", { quantity: 0 }, undefined);
+  });
+
+  it("test_patchInventory_withASource_passesItOn", async () => {
+    await patchInventory("x", { quantity: 2, reason: "purchase" }, "shopping_list");
+    expect(patch).toHaveBeenCalledWith("/inventory/x", { quantity: 2, reason: "purchase" }, "shopping_list");
   });
 
   it("deleteInventory deletes /inventory/{ean}", async () => {
@@ -70,5 +77,31 @@ describe("endpoint modules", () => {
   it("getShoppingList hits /shopping-list", async () => {
     await getShoppingList();
     expect(get).toHaveBeenCalledWith("/shopping-list");
+  });
+
+  it("test_postScan_postsTheRequestToScan", async () => {
+    const body = { ean: "1", mode: "purchase" as const, location: "freezer" as const };
+    await postScan(body);
+    expect(post).toHaveBeenCalledWith("/scan", body, undefined);
+  });
+
+  it("test_postScan_withASource_passesItOn", async () => {
+    await postScan({ ean: "1", mode: "consume" }, "device");
+    expect(post).toHaveBeenCalledWith("/scan", { ean: "1", mode: "consume" }, "device");
+  });
+
+  it("test_undoMovement_postsToTheUndoPathOfThatMovement", async () => {
+    await undoMovement(42);
+    expect(post).toHaveBeenCalledWith("/movements/42/undo");
+  });
+
+  it("test_getReview_getsTheReviewList", async () => {
+    await getReview();
+    expect(get).toHaveBeenCalledWith("/review");
+  });
+
+  it("test_confirmReview_postsToTheConfirmPathAndEncodesTheEan", async () => {
+    await confirmReview("a/b");
+    expect(post).toHaveBeenCalledWith("/review/a%2Fb/confirm");
   });
 });

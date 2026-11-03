@@ -1,7 +1,7 @@
 # Spec 01 · Pantalla de lista de la compra
 
 **Cubre:** N-01
-**Estado:** implementada (2026-11-03). Ver [Verificación](#verificación-2026-11-03).
+**Estado:** implementada (2026-11-03). **Sustituida por la [Spec 04](04-lista-de-la-compra-manual.md)**: la lista derivada del stock no era lo que se quería. Ver [Verificación](#verificación-2026-11-03).
 **Toca la BD:** no.
 **Depende de:** nada. Todo el backend que necesita ya existe.
 

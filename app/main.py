@@ -1,6 +1,14 @@
 from fastapi import FastAPI
 
-from app.api import inventory, products, resolve, shopping_list
+from app.api import (
+    inventory,
+    movements,
+    products,
+    resolve,
+    review,
+    scan,
+    shopping_list,
+)
 from app.db import get_engine, is_engine_set, set_engine
 
 
@@ -21,6 +29,9 @@ def create_app() -> FastAPI:
     app.include_router(products.router)
     app.include_router(inventory.router)
     app.include_router(shopping_list.router)
+    app.include_router(movements.router)
+    app.include_router(scan.router)
+    app.include_router(review.router)
     return app
 
 

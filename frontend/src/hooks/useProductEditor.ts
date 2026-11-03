@@ -125,6 +125,7 @@ function createStockActions(ean: string, tracked: InventoryWithProductOut | unde
       if (!tracked) return;
       const body = {
         quantity: roundQuantity(tracked.inventory.quantity + amount),
+        reason: "purchase" as const,
         ...locationPatch(currentLocation, location),
       };
       mutations.patch.mutate({ ean, body }, { onSuccess: onSaved, onError });

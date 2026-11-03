@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 
 from alembic import command
 
@@ -31,3 +32,13 @@ def upgrade_to_head(url: str) -> None:
         url: The SQLAlchemy URL of the database to upgrade.
     """
     command.upgrade(alembic_config(url), "head")
+
+
+def head_revision() -> str:
+    """Finds the newest migration, which a fully migrated database reports.
+
+    Returns:
+        The revision id of the head of the migration history.
+    """
+    script = ScriptDirectory.from_config(alembic_config("sqlite://"))
+    return script.get_current_head()

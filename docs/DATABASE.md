@@ -35,7 +35,30 @@ One row per tracked product.
 | `drawer` | integer, optional | 1 to 4. Only for freezer items. Added in `0002` |
 | `frozen_at` | date, optional | Only for freezer items. Added in `0002` |
 | `notes` | long text, optional | At most 500 characters. Added in `0002` |
+| `checked_at` | datetime, optional | Last time the weekly review confirmed the stock was real. Added in `0004` |
 | `created_at`, `updated_at` | datetime | |
+
+### `stock_movements`: the diary of stock changes
+
+Added in `0003`. Every change of `inventory_items.quantity` leaves one row. The table is
+**insert-only**: nothing edits or deletes a row. `inventory_items.quantity` stays the source of
+truth; this is its diary, and `scripts/check_movements.py` reports any disagreement.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | integer, primary key | |
+| `ean` | text, required | Foreign key to `products` (not to the stock row, so the history survives "Quitar de la despensa"), indexed |
+| `delta` | float, required | The change, with sign. **Never 0** |
+| `quantity_after` | float, required | The stock after the change |
+| `reason` | text, required | `initial`, `purchase`, `consume`, `waste`, `adjust`, `removed` |
+| `source` | text, required | `app`, `scan`, `shopping_list`, `device`, `ticket`, `migration`, `review`, `undo` |
+| `price` | float, optional | Total of the line, in euros. Empty until tickets are imported |
+| `undoes_id` | integer, optional | Foreign key to this table: the movement this one reverts |
+| `created_at` | datetime | UTC, without time zone |
+
+Only `InventoryService` writes it, so every entry point (the app, a scan, a future device)
+inherits the diary. A crash between writing the stock row and writing its movement leaves the
+diary one row behind; that is what the check script finds.
 
 ### `off_products`: imported OpenFoodFacts subset
 
@@ -52,6 +75,14 @@ Created by Alembic. Holds the revision the database is at.
 |---|---|---|
 | `0001` | `0001_initial_schema.py` | The original three tables and their indexes |
 | `0002` | `0002_freezer_fields.py` | Adds `drawer`, `frozen_at` and `notes`. Nullable. Nothing is backfilled, so a date is never invented for rows that existed before |
+| `0003` | `0003_stock_movements.py` | Creates `stock_movements` and **backfills the past**: one `initial` movement per item with stock, dated like the item (`source` `migration`). The downgrade drops the table and with it the whole history |
+| `0004` | `0004_inventory_checked_at.py` | Adds the nullable `checked_at` to `inventory_items`. Nothing is backfilled |
+
+`app.migrations.head_revision()` returns the newest revision, so tests never hard-code it.
+
+**Before deploying `0003`:** back up the database (see [Backups](#backups)), rehearse the upgrade on
+a copy, then run `uv run python -m scripts.check_movements`. A database stamped at `0001` or
+`0002` needs only `alembic upgrade head`.
 
 ### Common commands
 

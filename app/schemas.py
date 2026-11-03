@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -12,6 +12,10 @@ from app.constants import (
 )
 
 Location = Literal["pantry", "freezer"]
+ClientReason = Literal["purchase", "consume", "waste", "adjust"]
+ScanMode = Literal["purchase", "consume"]
+ScanStatus = Literal["applied", "created", "already_empty", "not_tracked", "unknown"]
+ReviewReason = Literal["overdue", "stale"]
 
 
 class _NutritionMixin(BaseModel):
@@ -141,7 +145,8 @@ class InventoryCreate(BaseModel):
 class InventoryPatch(BaseModel):
     """A partial edit of a stock row.
 
-    Quantity, threshold and unit can be changed but never cleared.
+    Quantity, threshold and unit can be changed but never cleared. `reason` is not a
+    column: it says why the quantity changed and goes to the diary of stock changes.
     """
 
     quantity: float | None = Field(default=None, ge=0, allow_inf_nan=False)
@@ -153,6 +158,7 @@ class InventoryPatch(BaseModel):
     )
     frozen_at: date | None = None
     notes: str | None = None
+    reason: ClientReason | None = None
 
     _reject_null_required = field_validator("quantity", "threshold", "unit")(
         reject_null
@@ -200,3 +206,57 @@ class EanNotFound(BaseModel):
     """Body of the 404 answer when an EAN is not known."""
 
     ean: str
+
+
+class MovementOut(BaseModel):
+    """One change of the stock of a product, as the diary returns it."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    ean: str
+    delta: float
+    quantity_after: float
+    reason: str
+    source: str
+    price: float | None = None
+    undoes_id: int | None = None
+    undone: bool = False
+    created_at: datetime
+
+
+class ScanRequest(BaseModel):
+    """A code read by a scanner, and what to do with it."""
+
+    ean: str = Field(min_length=1, max_length=64)
+    mode: ScanMode
+    location: Location | None = None
+
+
+class ScanResultOut(BaseModel):
+    """What happened when a code was scanned. Every outcome is a normal 200 answer."""
+
+    status: ScanStatus
+    mode: ScanMode
+    ean: str
+    name: str | None = None
+    image_url: str | None = None
+    quantity_before: float | None = None
+    quantity_after: float | None = None
+    unit: str | None = None
+    movement_id: int | None = None
+    low: bool | None = None
+
+
+class ReviewCandidateOut(BaseModel):
+    """A product the weekly review asks about."""
+
+    ean: str
+    name: str
+    brand: str | None = None
+    image_url: str | None = None
+    quantity: float
+    unit: str
+    reason: ReviewReason
+    estimated_empty_on: date | None = None
+    days_since_activity: int

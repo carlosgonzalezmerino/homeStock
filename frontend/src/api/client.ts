@@ -2,6 +2,8 @@
 const API_BASE_PATH = "/api";
 const JSON_CONTENT_TYPE = "application/json";
 const NO_CONTENT_STATUS = 204;
+/** Header that tells the backend where a stock change comes from. */
+export const SOURCE_HEADER = "X-HomeStock-Source";
 
 /** Error thrown when the backend answers with a non-2xx status. */
 export class ApiError extends Error {
@@ -52,16 +54,27 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
 }
 
 /**
+ * Builds the headers of a write request.
+ *
+ * @param source - Where the change comes from. Left out, the backend assumes the app.
+ * @returns The headers, with the source only when one was given.
+ */
+function writeHeaders(source?: string): Record<string, string> {
+  return source ? { [SOURCE_HEADER]: source } : {};
+}
+
+/**
  * Builds the init object for a request that sends a JSON body.
  *
  * @param method - HTTP method, such as `POST` or `PATCH`.
  * @param body - Value serialized as JSON.
+ * @param source - Where the change comes from, sent as a header when given.
  * @returns The `RequestInit` for `fetch`.
  */
-function jsonRequestInit(method: "POST" | "PATCH", body: unknown): RequestInit {
+function jsonRequestInit(method: "POST" | "PATCH", body: unknown, source?: string): RequestInit {
   return {
     method,
-    headers: { "Content-Type": JSON_CONTENT_TYPE },
+    headers: { "Content-Type": JSON_CONTENT_TYPE, ...writeHeaders(source) },
     body: JSON.stringify(body),
   };
 }
@@ -82,11 +95,12 @@ export function get<T>(path: string): Promise<T> {
  *
  * @param path - Path relative to the API base.
  * @param body - Value serialized as JSON.
+ * @param source - Where the change comes from, sent as a header when given.
  * @returns The parsed response body.
  * @throws {ApiError} When the backend responds with a non-2xx status.
  */
-export function post<T>(path: string, body: unknown): Promise<T> {
-  return request<T>(path, jsonRequestInit("POST", body));
+export function post<T>(path: string, body?: unknown, source?: string): Promise<T> {
+  return request<T>(path, jsonRequestInit("POST", body ?? {}, source));
 }
 
 /**
@@ -94,20 +108,22 @@ export function post<T>(path: string, body: unknown): Promise<T> {
  *
  * @param path - Path relative to the API base.
  * @param body - Value serialized as JSON.
+ * @param source - Where the change comes from, sent as a header when given.
  * @returns The parsed response body.
  * @throws {ApiError} When the backend responds with a non-2xx status.
  */
-export function patch<T>(path: string, body: unknown): Promise<T> {
-  return request<T>(path, jsonRequestInit("PATCH", body));
+export function patch<T>(path: string, body: unknown, source?: string): Promise<T> {
+  return request<T>(path, jsonRequestInit("PATCH", body, source));
 }
 
 /**
  * Performs a DELETE request and discards the response body.
  *
  * @param path - Path relative to the API base.
+ * @param source - Where the change comes from, sent as a header when given.
  * @returns A promise that resolves when the backend accepts the deletion.
  * @throws {ApiError} When the backend responds with a non-2xx status.
  */
-export async function del(path: string): Promise<void> {
-  await request<void>(path, { method: "DELETE" });
+export async function del(path: string, source?: string): Promise<void> {
+  await request<void>(path, { method: "DELETE", headers: writeHeaders(source) });
 }

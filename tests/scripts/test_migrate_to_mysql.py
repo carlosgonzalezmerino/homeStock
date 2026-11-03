@@ -3,7 +3,7 @@ from sqlalchemy import Engine, text
 from sqlmodel import Session, select
 
 from app.db import get_engine
-from app.migrations import upgrade_to_head
+from app.migrations import head_revision, upgrade_to_head
 from app.models import InventoryItem, Product
 from scripts.migrate_to_mysql import copy_table, main
 
@@ -108,7 +108,7 @@ def test_main_creates_the_target_schema_with_migrations_and_copies_every_table(
     ] == [1, 0, 1]
     with target.connect() as connection:
         version = connection.execute(text("select version_num from alembic_version"))
-        assert version.scalar_one() == "0002"
+        assert version.scalar_one() == head_revision()
     assert "inventory_items: 1 rows copied" in capsys.readouterr().out
 
 

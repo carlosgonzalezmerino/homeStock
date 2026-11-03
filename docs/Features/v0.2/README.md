@@ -10,9 +10,10 @@ diseño para explorar, con tres decisiones pendientes, sin implementar.
 
 | Spec | Cubre | Toca la BD | Estado |
 |---|---|---|---|
-| [01 · Lista de la compra](01-lista-de-la-compra.md) | N-01 | No | Implementada |
+| [01 · Lista de la compra](01-lista-de-la-compra.md) | N-01 | No | Implementada, **sustituida por la 04** |
 | [02 · Antigüedad en el congelador](02-antiguedad-congelador.md) | N-02 | No | Implementada |
 | [03 · Recetas y «qué puedo cocinar»](03-recetas.md) | N-17, N-18 | **Sí** | Diseño. Espera D9, D10 y D11 |
+| [04 · Lista de la compra manual](04-lista-de-la-compra-manual.md) | N-01 (rehecha) | **Sí** | Propuesta. Espera L1–L6 |
 
 Las dos primeras son **solo frontend**: no cambian ningún endpoint ni esquema, así que no hace
 falta `uv run python -m scripts.export_openapi`. La tercera necesita migración `0003`.

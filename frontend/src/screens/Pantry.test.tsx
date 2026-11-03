@@ -131,7 +131,7 @@ describe("Pantry — inline quantity", () => {
     renderInApp(pantryRoutes(), ["/despensa"]);
     const row = (await screen.findByText("Pollo troceado")).closest("div.flex") as HTMLElement;
     fireEvent.click(within(row.parentElement as HTMLElement).getByRole("button", { name: "＋" }));
-    await waitFor(() => expect(patches()).toEqual([{ quantity: 1.5 }]));
+    await waitFor(() => expect(patches()).toEqual([{ quantity: 1.5, reason: "purchase" }]));
   });
 
   it("test_pantry_minusFromHalfUnit_sendsZeroNotNegative", async () => {
@@ -140,7 +140,7 @@ describe("Pantry — inline quantity", () => {
     renderInApp(pantryRoutes(), ["/despensa"]);
     const minus = (await screen.findAllByRole("button", { name: "−" }))[0];
     fireEvent.click(minus);
-    await waitFor(() => expect(patches()).toEqual([{ quantity: 0 }]));
+    await waitFor(() => expect(patches()).toEqual([{ quantity: 0, reason: "consume" }]));
   });
 });
 

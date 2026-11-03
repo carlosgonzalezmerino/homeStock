@@ -1,6 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import { AppShell } from "@/components";
-import { Dashboard, Pantry, Scan, ProductDetail, ManualEntry, Settings, CustomEntry, ShoppingList } from "@/screens";
+import { Dashboard, Pantry, Scan, ProductDetail, ManualEntry, Settings, CustomEntry, ShoppingList, ReviewPurchase, Review } from "@/screens";
 
 /**
  * Every screen of the app and the path that opens it.
@@ -18,7 +18,9 @@ export function AppRoutes() {
         <Route path="despensa" element={<Pantry />} />
         <Route path="despensa/:ean" element={<ProductDetail mode="manage" />} />
         <Route path="lista" element={<ShoppingList />} />
+        <Route path="repaso" element={<Review />} />
         <Route path="scan" element={<Scan />} />
+        <Route path="scan/revisar" element={<ReviewPurchase />} />
         <Route path="scan/:ean" element={<ProductDetail mode="scan" />} />
         <Route path="scan/:ean/manual" element={<ManualEntry />} />
         <Route path="custom-entry" element={<CustomEntry />} />

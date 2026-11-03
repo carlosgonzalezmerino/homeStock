@@ -82,6 +82,7 @@ const INVENTORY_CREATE: Record<keyof InventoryCreate, true> = {
   notes: true,
 };
 const INVENTORY_PATCH: Record<keyof InventoryPatch, true> = {
+  reason: true,
   quantity: true,
   threshold: true,
   unit: true,

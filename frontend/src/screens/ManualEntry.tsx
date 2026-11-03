@@ -1,6 +1,6 @@
 import { useState, type BaseSyntheticEvent } from "react";
 import { Controller, useForm, type Control, type FieldErrors, type UseFormRegister, type UseFormReturn } from "react-hook-form";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAddInventory, useCreateProduct } from "@/hooks";
 import { Button, DrawerPicker, FormField, INPUT_CLASS, LocationPicker } from "@/components";
@@ -130,13 +130,31 @@ export function ManualEntry() {
   );
 }
 
+/** Screen shown after the product is saved, unless the screen that sent the user here says otherwise. */
+const DEFAULT_DESTINATION = "/despensa";
+
 /**
- * Save flow of the manual entry: the product once, then its stock. On success it returns to the pantry.
+ * Chooses where to go after saving. A screen can ask to be returned to through `state.returnTo`,
+ * which is only honoured for paths inside the app.
+ *
+ * @param state - The router state this screen was opened with.
+ * @returns The requested path, or the pantry.
+ */
+export function returnDestination(state: unknown): string {
+  const requested = (state as { returnTo?: unknown } | null)?.returnTo;
+  const isInternalPath = typeof requested === "string" && requested.startsWith("/") && !requested.startsWith("//");
+  return isInternalPath ? requested : DEFAULT_DESTINATION;
+}
+
+/**
+ * Save flow of the manual entry: the product once, then its stock. On success it returns to the
+ * screen that asked for it, or to the pantry.
  *
  * @returns The submit handler, the pending flag and the message of the last failure.
  */
 function useManualSave() {
   const navigate = useNavigate();
+  const destination = returnDestination(useLocation().state);
   const queryClient = useQueryClient();
   const { setLocation } = useActiveLocation();
   const createProduct = useCreateProduct();
@@ -157,7 +175,7 @@ function useManualSave() {
       return;
     }
     setLocation(values.location);
-    navigate("/despensa", { state: { added: true }, replace: true });
+    navigate(destination, { state: { added: true }, replace: true });
   }
 
   return { submit, isPending: createProduct.isPending || addInventory.isPending, errorMessage };

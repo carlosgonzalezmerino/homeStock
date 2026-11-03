@@ -2,6 +2,8 @@
 export interface SegmentOption<T extends string> {
   value: T;
   label: string;
+  /** Classes of the tab while selected. Defaults to the accent fill used for actions. */
+  activeClass?: string;
 }
 
 /** Props accepted by {@link SegmentedControl}. */
@@ -39,7 +41,7 @@ export function SegmentedControl<T extends string>({
             role="tab"
             aria-selected={isActive}
             onClick={() => onChange(option.value)}
-            className={`${SEGMENT_BASE_CLASS} ${isActive ? ACTIVE_SEGMENT_CLASS : INACTIVE_SEGMENT_CLASS}`}
+            className={`${SEGMENT_BASE_CLASS} ${isActive ? (option.activeClass ?? ACTIVE_SEGMENT_CLASS) : INACTIVE_SEGMENT_CLASS}`}
           >
             {option.label}
           </button>

@@ -1,5 +1,11 @@
 import { get, post, patch, del } from "@/api/client";
-import type { InventoryCreate, InventoryOut, InventoryPatch, InventoryWithProductOut } from "@/types";
+import type {
+  InventoryCreate,
+  InventoryOut,
+  InventoryPatch,
+  InventoryWithProductOut,
+  MovementSource,
+} from "@/types";
 
 /**
  * Lists inventory items, optionally filtered by their low-stock flag.
@@ -26,11 +32,12 @@ export function addInventory(data: InventoryCreate): Promise<InventoryOut> {
  * Updates the quantity, threshold, unit or location of an inventory item.
  *
  * @param ean - EAN of the inventory item.
- * @param data - Only the fields to change.
+ * @param data - Only the fields to change. `reason` says why the quantity changed.
+ * @param source - Where the change comes from. Left out, the backend assumes the app.
  * @returns The updated inventory record.
  */
-export function patchInventory(ean: string, data: InventoryPatch): Promise<InventoryOut> {
-  return patch<InventoryOut>(`/inventory/${encodeURIComponent(ean)}`, data);
+export function patchInventory(ean: string, data: InventoryPatch, source?: MovementSource): Promise<InventoryOut> {
+  return patch<InventoryOut>(`/inventory/${encodeURIComponent(ean)}`, data, source);
 }
 
 /**

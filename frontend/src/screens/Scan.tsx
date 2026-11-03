@@ -1,13 +1,23 @@
 import { useState, type FormEvent, type RefObject } from "react";
 import { useNavigate, type NavigateFunction } from "react-router-dom";
-import { useAddedToast, useScanner, type ScannerState, type UseScannerReturn } from "@/hooks";
+import {
+  useAddedToast,
+  useBurstScan,
+  usePurchaseSession,
+  useScanMode,
+  useScanner,
+  type ScannerState,
+  type UseScannerReturn,
+} from "@/hooks";
 import { ApiError } from "@/api/client";
 import { resolveProduct } from "@/api/resolve";
 import { HTTP_NOT_FOUND } from "@/api/status";
-import { Button, INPUT_CLASS, StatusToast } from "@/components";
+import { Button, ConsumeBanner, INPUT_CLASS, ScanModeControl, ScanResultSheet, StatusToast } from "@/components";
+import { useActiveLocation } from "@/location";
 import { describeError } from "@/utils/errors";
 import { extractEan, isValidEan } from "@/utils/ean";
 import { isDiagnosticsEnabled } from "@/utils/diagnostics";
+import { prepareScanFeedback } from "@/utils/scanFeedback";
 
 /** Message shown in the "added" confirmation. */
 const ADDED_MESSAGE = "Producto añadido";
@@ -49,57 +59,83 @@ export function normalizeTypedEan(rawText: string): string | null {
 }
 
 /**
- * Behaviour of the scan page: the camera, the confirmation toast and the navigation after a code is read.
+ * Behaviour of the scan page: the camera, the mode, the confirmation toast and what a code does.
  *
- * A code that is neither an EAN nor a supported QR is not opened. It is kept so the screen can show it.
+ * In `detail` mode a code opens the product and the camera stops, as it always did. In `purchase`
+ * and `consume` modes the camera stays on and each code is applied at once. A code that is
+ * neither an EAN nor a supported QR is not used. It is kept so the screen can show it.
  *
- * @returns The scanner, whether the toast is visible, the unrecognised code, and a handler for an EAN typed by the user.
+ * @returns The scanner, the mode, the burst actions, whether the toast is visible, the
+ *   unrecognised code, a handler for an EAN typed by the user and the camera start action.
  */
 function useScanPage() {
   const navigate = useNavigate();
+  const { location } = useActiveLocation();
+  const [mode, changeMode] = useScanMode();
+  const session = usePurchaseSession();
+  const burst = useBurstScan({ mode: mode === "consume" ? "consume" : "purchase", location, session });
   const [unrecognizedCode, setUnrecognizedCode] = useState<string | null>(null);
-  const scanner: UseScannerReturn = useScanner((rawValue) => {
-    const ean = normalizeTypedEan(rawValue);
-    setUnrecognizedCode(ean === null ? rawValue : null);
-    if (ean !== null) void openProductForEan(ean, navigate);
-  });
+
+  function applyCode(ean: string) {
+    if (mode === "detail") void openProductForEan(ean, navigate);
+    else void burst.scan(ean);
+  }
+
+  const scanner: UseScannerReturn = useScanner(
+    (rawValue) => {
+      const ean = normalizeTypedEan(rawValue);
+      setUnrecognizedCode(ean === null ? rawValue : null);
+      if (ean !== null) applyCode(ean);
+    },
+    { continuous: mode !== "detail" },
+  );
   const showAddedToast = useAddedToast();
 
   function submitTypedEan(ean: string) {
-    scanner.stop();
+    if (mode === "detail") scanner.stop();
     setUnrecognizedCode(null);
-    void openProductForEan(ean, navigate);
+    applyCode(ean);
   }
 
-  return { scanner, showAddedToast, unrecognizedCode, submitTypedEan };
+  function startCamera() {
+    prepareScanFeedback();
+    void scanner.start();
+  }
+
+  return { scanner, mode, changeMode, session, burst, showAddedToast, unrecognizedCode, submitTypedEan, startCamera };
 }
 
 /**
- * Scan screen: camera viewfinder, manual EAN entry and a path for products without a barcode.
+ * Scan screen: mode selector, camera viewfinder, manual EAN entry and a path for products without a barcode.
  *
  * @returns The scan page.
  */
 export function Scan() {
   const navigate = useNavigate();
-  const { scanner, showAddedToast, unrecognizedCode, submitTypedEan } = useScanPage();
+  const page = useScanPage();
+  const { scanner, mode, burst, session } = page;
   const showDiagnostics = import.meta.env.DEV || isDiagnosticsEnabled();
 
   return (
     <div className="flex flex-col items-center gap-6 pt-6">
       <h1 className="text-heading-sm text-on-surface">Escanear producto</h1>
-      {showAddedToast && <StatusToast message={ADDED_MESSAGE} />}
-      <CameraViewfinder videoRef={scanner.ref} isScanning={scanner.state === "scanning"} />
+      <div className="w-full max-w-sm">
+        <ScanModeControl value={mode} onChange={page.changeMode} />
+      </div>
+      {mode === "consume" && <ConsumeBanner />}
+      {page.showAddedToast && <StatusToast message={ADDED_MESSAGE} />}
+      <CameraViewfinder videoRef={scanner.ref} isScanning={scanner.state === "scanning"} isConsuming={mode === "consume"} />
       <ScannerStatus state={scanner.state} errorMessage={scanner.error} />
-      {unrecognizedCode && <UnrecognizedCodeMessage code={unrecognizedCode} />}
-      {(scanner.state === "idle" || scanner.state === "error") && (
-        <Button onClick={() => void scanner.start()}>Activar cámara</Button>
-      )}
+      {page.unrecognizedCode && <UnrecognizedCodeMessage code={page.unrecognizedCode} />}
+      {(scanner.state === "idle" || scanner.state === "error") && <Button onClick={page.startCamera}>Activar cámara</Button>}
+      {session.count > 0 && <Button variant="ghost" onClick={() => navigate("/scan/revisar")}>{`Terminar (${session.count})`}</Button>}
       {showDiagnostics && <ScannerDebugPanel lines={scanner.debugInfo} />}
       <OrDivider />
-      <ManualEanForm onSubmitEan={submitTypedEan} />
+      <ManualEanForm onSubmitEan={page.submitTypedEan} />
       <Button variant="tertiary" onClick={() => navigate("/custom-entry")}>
         Añadir sin código
       </Button>
+      {burst.sheet && <ScanResultSheet sheet={burst.sheet} onUndo={() => void burst.undo()} />}
     </div>
   );
 }
@@ -127,6 +163,8 @@ function UnrecognizedCodeMessage({ code }: UnrecognizedCodeMessageProps) {
 interface CameraViewfinderProps {
   videoRef: RefObject<HTMLVideoElement>;
   isScanning: boolean;
+  /** The mode takes units out, so the aiming frame uses the warning colour instead of the accent. */
+  isConsuming?: boolean;
 }
 
 /**
@@ -134,10 +172,10 @@ interface CameraViewfinderProps {
  *
  * The video element stays mounted while idle so the scanner can attach the stream to it.
  *
- * @param props - The video ref used by the scanner and whether the camera is running.
+ * @param props - The video ref used by the scanner, whether the camera is running and whether the mode takes units out.
  * @returns The video element and the aiming overlay.
  */
-function CameraViewfinder({ videoRef, isScanning }: CameraViewfinderProps) {
+function CameraViewfinder({ videoRef, isScanning, isConsuming = false }: CameraViewfinderProps) {
   return (
     <div className="relative w-full max-w-sm">
       <video
@@ -148,7 +186,7 @@ function CameraViewfinder({ videoRef, isScanning }: CameraViewfinderProps) {
       />
       {isScanning && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-32 w-64 rounded-sm border-2 border-primary opacity-70" />
+          <div className={`h-32 w-64 rounded-sm border-2 opacity-70 ${isConsuming ? "border-tertiary" : "border-primary"}`} />
         </div>
       )}
     </div>

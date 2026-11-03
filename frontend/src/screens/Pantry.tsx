@@ -17,6 +17,7 @@ import {
 import { useActiveLocation } from "@/location";
 import type { InventoryWithProductOut, Location } from "@/types";
 import { roundQuantity } from "@/utils/format";
+import { reasonForChange } from "@/utils/movement";
 import { compareByFreezerAge, formatFrozenAge, isFreezerStale, normalizeLocation } from "@/utils/freezer";
 import { computeStockStatus, isPantryLocation } from "@/utils/stock";
 
@@ -223,7 +224,7 @@ function useInlineQuantity(item: InventoryWithProductOut) {
     const rounded = roundQuantity(nextQuantity);
     setQuantity(rounded);
     patch.mutate(
-      { ean: inventory.ean, body: { quantity: rounded } },
+      { ean: inventory.ean, body: { quantity: rounded, reason: reasonForChange(quantity, rounded) } },
       { onError: () => setQuantity(inventory.quantity) },
     );
   }

@@ -155,7 +155,7 @@ describe("ProductDetail — scan mode, product already in the pantry", () => {
     renderInApp(detailRoutes("scan"), [`/scan/${EAN}`]);
     fireEvent.click(await screen.findByRole("button", { name: "＋" }));
     fireEvent.click(screen.getByRole("button", { name: "Sumar 2" }));
-    await waitFor(() => expect(body()).toEqual({ quantity: 7 }));
+    await waitFor(() => expect(body()).toEqual({ quantity: 7, reason: "purchase" }));
   });
 
   it("test_scanTracked_decimalAmountIsAddedExactly", async () => {
@@ -166,7 +166,7 @@ describe("ProductDetail — scan mode, product already in the pantry", () => {
     fireEvent.change(amount, { target: { value: "0,5" } });
     fireEvent.blur(amount);
     fireEvent.click(screen.getByRole("button", { name: "Sumar 0,5" }));
-    await waitFor(() => expect(body()).toEqual({ quantity: 5.5 }));
+    await waitFor(() => expect(body()).toEqual({ quantity: 5.5, reason: "purchase" }));
   });
 
   it("test_scanTracked_savedAddReturnsToScanner", async () => {
@@ -185,7 +185,7 @@ describe("ProductDetail — scan mode, product already in the pantry", () => {
     expect(screen.getByText("Cambiar la ubicación mueve todas las unidades")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Sumar 1" }));
     await waitFor(() =>
-      expect(body()).toEqual({ quantity: 6, location: "freezer", frozen_at: localIsoDate() }),
+      expect(body()).toEqual({ quantity: 6, reason: "purchase", location: "freezer", frozen_at: localIsoDate() }),
     );
   });
 

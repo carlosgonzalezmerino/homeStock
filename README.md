@@ -11,7 +11,10 @@ left in the pantry and in the freezer, and see what is running low.
 
 | Area | Behaviour |
 |---|---|
-| Scanning | Reads EAN barcodes and Mercadona QR codes with the phone camera, or a code typed by hand. The camera only runs while you ask for it. |
+| Scanning | Reads EAN barcodes and Mercadona QR codes with the phone camera, or a code typed by hand. The camera only runs while you ask for it. Three modes: **Detalle** (opens the product), **Compra** (the camera stays on and every code adds one unit) and **Gastar** (every code takes one unit out). Every scan has a beep, a vibration and an **Deshacer** button. |
+| Shopping session | In **Compra** mode, what you scan is kept (even across a reload) and reviewed at the end: what was added, which products are new, and the codes nobody knew. |
+| History | Every change of stock is written to a diary (`stock_movements`) with its reason and where it came from. Undo reverts a change by writing another one; nothing is deleted. |
+| Weekly review | Asks, one card at a time, about the products that by your own pace should have run out, or that nobody has touched for two months. Opened from the dashboard; it never notifies by itself. |
 | Product lookup | Local catalogue first, then the imported OpenFoodFacts subset. Unknown codes go to a manual form. Every hit is cached in the catalogue. |
 | Stock | One stock row per product, with a quantity, an alert threshold, a unit and a location (pantry or freezer). Quantities accept decimals such as `0,5`. |
 | Freezer | A freezer item can carry a drawer (1 to 4) and the date it was frozen. The pantry list shows how long ago, and flags anything past 6 months. |
@@ -105,6 +108,8 @@ DATABASE_URL=sqlite:///homestock.db uv run alembic upgrade head
 |---|---|
 | `0001` | The original schema: `products`, `off_products`, `inventory_items` |
 | `0002` | Adds `drawer`, `frozen_at` and `notes` to `inventory_items`. Nullable columns, no data changed |
+| `0003` | Creates `stock_movements` (the diary) and backfills one `initial` movement per item with stock |
+| `0004` | Adds the nullable `checked_at` to `inventory_items`, for the weekly review |
 
 ## Import the OpenFoodFacts subset
 
@@ -184,6 +189,7 @@ terminates TLS with the same kind of certificate.
 ```bash
 uv run pytest                                     # backend tests
 uv run pytest --cov=app --cov=scripts             # coverage, target 80%
+uv run python -m scripts.check_movements          # does every stock row agree with its diary?
 uv run ruff check . && uv run ruff format --check .
 
 cd frontend

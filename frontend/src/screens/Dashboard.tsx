@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useInventory } from "@/hooks";
+import { useInventory, useReview } from "@/hooks";
 import { Card, LevelBar, Spinner, ErrorState, EmptyState, StatTile, StatusBadge } from "@/components";
 import type { InventoryWithProductOut } from "@/types";
 import { formatQuantity } from "@/utils/format";
@@ -26,8 +26,30 @@ export function Dashboard() {
   return (
     <div className="flex flex-col gap-8 pt-6">
       <SummarySection totalCount={data?.length ?? 0} lowStockCount={lowStockItems.length} />
+      <ReviewEntry />
       <AlertsSection items={lowStockItems} />
     </div>
+  );
+}
+
+/**
+ * Entry to the weekly review. It only shows when there is something to ask, and it never asks by
+ * itself: the review waits until the user opens the app.
+ *
+ * @returns A card that opens the review, or nothing when there are no candidates or they failed to load.
+ */
+function ReviewEntry() {
+  const navigate = useNavigate();
+  const { data } = useReview();
+  if (!data || data.length === 0) return null;
+  const word = data.length === 1 ? "producto" : "productos";
+  return (
+    <section className="flex flex-col gap-4">
+      <SectionHeader eyebrow="Repaso semanal" title={`${data.length} ${word} · 1 minuto`} />
+      <Card onClick={() => navigate("/repaso")}>
+        <p className="text-body text-on-surface">Comprueba si lo que dice la despensa sigue siendo verdad.</p>
+      </Card>
+    </section>
   );
 }
 

@@ -33,12 +33,12 @@ function mockShoppingList(items: ShoppingListItemOut[]) {
  * @returns A function that returns the patches received so far.
  */
 function mockPatch(failingEans: string[] = []) {
-  const patches: Array<{ ean: string; body: Record<string, unknown> }> = [];
+  const patches: Array<{ ean: string; body: Record<string, unknown>; source: string | null }> = [];
   server.use(
     http.patch("/api/inventory/:ean", async ({ request, params }) => {
       const body = (await request.json()) as Record<string, unknown>;
       const ean = String(params.ean);
-      patches.push({ ean, body });
+      patches.push({ ean, body, source: request.headers.get("x-homestock-source") });
       if (failingEans.includes(ean)) return HttpResponse.json({ detail: "fail" }, { status: 500 });
       return HttpResponse.json({});
     }),
@@ -123,7 +123,9 @@ describe("ShoppingList — registering a purchase", () => {
     renderInApp(listRoutes(), ["/lista"]);
     fireEvent.click(await screen.findByRole("checkbox", { name: "Leche" }));
     fireEvent.click(screen.getByRole("button", { name: "Añadir al stock (1)" }));
-    await waitFor(() => expect(patches()).toEqual([{ ean: "1111111111111", body: { quantity: 3 } }]));
+    await waitFor(() => expect(patches()).toEqual([
+        { ean: "1111111111111", body: { quantity: 3, reason: "purchase" }, source: "shopping_list" },
+      ]));
     expect(await screen.findByText("✓ Compra añadida")).toBeInTheDocument();
   });
 

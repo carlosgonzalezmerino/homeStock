@@ -24,8 +24,21 @@ uv run pytest && uv run ruff check . && uv run ruff format --check .
 cd frontend && npm run check          # type check + tests. Not only `npm test`.
 ```
 
+- **If `uv run pytest` says `Failed to spawn: pytest`**, the scripts in `.venv/bin` have a shebang
+  from the code-server container (`/config/workspace/...`). The interpreter works: use
+  `.venv/bin/python -m pytest` and `.venv/bin/ruff`. Do not rebuild the venv for this.
+
 ## Things that are easy to get wrong
 
+- **Every change of a quantity goes through `InventoryService`** (`update`, `adjust`, `start_tracking`,
+  `stop_tracking`). It writes the diary (`stock_movements`). Going straight to `InventoryRepository`
+  loses the history without any error. `scripts/check_movements.py` finds the gap.
+- **`consume` (the scan mode that takes units out) is never remembered** between visits and is not
+  drawn in the action green. Both are on purpose; see `docs/Features/v0.3/03-modo-consumir.md`.
+- The ORM returns the same object it updates: read the *previous* value before calling the service.
+- A screen that clears state and navigates in one click must persist **synchronously**, not from a
+  `useEffect` (see `usePurchaseSession`).
+- Tests never hard-code the head migration: use `app.migrations.head_revision()`.
 - "Low stock" is `quantity == 0 or quantity < threshold`. Exactly at the threshold is not low.
   It is written in the backend (property and SQL) and mirrored in `computeStockStatus`.
   Change them together; both sides' tests share the cases.

@@ -3,17 +3,17 @@
 Convierte en specs implementables lo elegido de [`version0.3.md`](../version0.3.md), que es el
 catálogo completo con el diagnóstico, las alternativas y el hardware.
 
-**Estado:** spec 01 escrita, sin implementar. Las specs 02, 03 y 04 se escribirán en ese orden,
-cada una cuando la anterior esté cerrada.
+**Estado:** specs 01 a 04 implementadas y verificadas con tests (2026-11-03). Pendiente de comprobar en un
+iPhone real y a 380 px; ver la sección de Verificación de cada spec.
 
 ## Specs
 
 | Spec | Cubre | Toca la BD | Estado |
 |---|---|---|---|
-| [01 · Registro de movimientos](01-registro-de-movimientos.md) | U-01 (= N-04) | **Sí**, migración `0003` | Escrita |
-| 02 · Modo compra (ráfaga) | U-02 | No | Pendiente |
-| 03 · Modo consumir | U-03 (= N-06) | No | Pendiente |
-| 04 · Repaso semanal | U-04 | No | Pendiente |
+| [01 · Registro de movimientos](01-registro-de-movimientos.md) | U-01 (= N-04) | **Sí**, migración `0003` | Implementada |
+| [02 · Modo compra (ráfaga)](02-modo-compra.md) | U-02 | No | Implementada |
+| [03 · Modo consumir](03-modo-consumir.md) | U-03 (= N-06) | No | Implementada |
+| [04 · Repaso semanal](04-repaso-semanal.md) | U-04 | **Sí**, migración `0004` | Implementada |
 
 Y después, a darle vueltas sin compromiso: **U-07, el ticket de Mercadona**. No se escribe spec
 hasta que las cuatro anteriores estén.
@@ -67,7 +67,7 @@ Las mismas de la v0.1 y la v0.2, de [`DevelopStyle.md`](../../../../Trabajo/Desa
 
 | Trampa | Dónde aparece |
 |---|---|
-| La regla de stock bajo está escrita **tres veces** (propiedad, SQL y `computeStockStatus`) | Spec 04 la usa para decidir a quién preguntar. **No la modifica** |
+| La regla de stock bajo está escrita **tres veces** (propiedad, SQL y `computeStockStatus`) | Spec 04 no decide qué es «bajo»: pregunta por lo que el historial da por agotado. **No la toca** |
 | Una sola fila de inventario por EAN | Spec 01 cuelga el historial del EAN, no de la fila, justamente por esto |
 | Un producto está en una sola ubicación | Spec 02: un mismo EAN escaneado dos veces en una ráfaga no puede ir a dos sitios |
 | Todo acceso a `localStorage` va envuelto | Specs 02 y 03 recuerdan ahí el modo activo |
@@ -78,8 +78,9 @@ Las mismas de la v0.1 y la v0.2, de [`DevelopStyle.md`](../../../../Trabajo/Desa
 ## Choque de numeración de migraciones
 
 [`v0.2/03-recetas.md`](../v0.2/03-recetas.md) reservaba la revisión `0003`. Como las recetas siguen
-sin implementarse y esto sí va a hacerse, **`0003` es el registro de movimientos** y las recetas
-pasarían a `0004`. Hay que corregir esa línea de la spec de recetas cuando se retome.
+sin implementarse y esto sí va a hacerse, **`0003` es el registro de movimientos, `0004` el repaso
+semanal**, y las recetas pasarían a `0005`. Hay que corregir esa línea de la spec de recetas cuando
+se retome.
 
 ## Pendientes de antes que siguen abiertos
 

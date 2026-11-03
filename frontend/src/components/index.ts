@@ -20,3 +20,5 @@ export { Spinner } from "./Spinner";
 export { ErrorState } from "./ErrorState";
 export { INPUT_CLASS } from "./styles";
 export { ProductThumbnail } from "./ProductThumbnail";
+export { ScanModeControl, ConsumeBanner } from "./ScanModeControl";
+export { ScanResultSheet } from "./ScanResultSheet";

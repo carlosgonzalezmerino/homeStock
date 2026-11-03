@@ -4,6 +4,7 @@ from sqlmodel import Session
 from app.db import create_db_and_tables, get_engine
 from app.models import Product
 from app.repositories.inventory import InventoryRepository
+from app.repositories.movements import MovementRepository
 from app.repositories.products import ProductRepository
 from app.services.inventory import (
     AlreadyTrackedError,
@@ -18,7 +19,11 @@ def _service() -> InventoryService:
     session = Session(engine)
     session.add(Product(ean="p", name="Prod", source="manual"))
     session.commit()
-    return InventoryService(InventoryRepository(session), ProductRepository(session))
+    return InventoryService(
+        InventoryRepository(session),
+        ProductRepository(session),
+        MovementRepository(session),
+    )
 
 
 def test_start_tracking_creates_item() -> None:

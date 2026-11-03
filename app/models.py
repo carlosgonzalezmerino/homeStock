@@ -50,6 +50,7 @@ class InventoryItem(SQLModel, table=True):
     drawer: int | None = None
     frozen_at: date | None = None
     notes: str | None = Field(default=None, sa_type=Text)
+    checked_at: datetime | None = None
     created_at: datetime = Field(default_factory=_now)
     updated_at: datetime = Field(default_factory=_now)
 
@@ -64,6 +65,25 @@ class InventoryItem(SQLModel, table=True):
             `True` when the quantity is 0 or lower than the threshold.
         """
         return self.quantity == 0 or self.quantity < self.threshold
+
+
+class StockMovement(SQLModel, table=True):
+    """One change of the stock of a product. Insert-only: rows are never edited.
+
+    It is the diary of `inventory_items.quantity`, which stays the source of truth.
+    """
+
+    __tablename__ = "stock_movements"
+
+    id: int | None = Field(default=None, primary_key=True)
+    ean: str = Field(foreign_key="products.ean", index=True)
+    delta: float
+    quantity_after: float
+    reason: str
+    source: str
+    price: float | None = None
+    undoes_id: int | None = Field(default=None, foreign_key="stock_movements.id")
+    created_at: datetime = Field(default_factory=_now)
 
 
 class OffProduct(SQLModel, table=True):

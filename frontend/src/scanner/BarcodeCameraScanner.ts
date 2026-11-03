@@ -15,6 +15,11 @@ export interface BarcodeCameraScannerOptions {
   onStateChange: (state: ScannerState, errorMessage: string | null) => void;
   onLog: DiagnosticLogger;
   onDetect: (code: string) => void;
+  /**
+   * Asked on every reading. When it answers `true` the camera stays on and keeps reading
+   * after a code; otherwise the camera stops after the first code. Absent means one shot.
+   */
+  isContinuous?: () => boolean;
 }
 
 /** Decodes the current video frame. Resolves `null` when the frame holds no code. */
@@ -22,6 +27,13 @@ type FrameDecoder = (video: HTMLVideoElement) => Promise<string | null>;
 
 /** Time between two ZXing decodes. Decoding every frame is too heavy for a phone. */
 export const ZXING_DECODE_INTERVAL_MS = 100;
+
+/**
+ * In continuous mode, how long a code must be out of sight before it can count again.
+ * Every sighting renews the window, so a product held still in front of the camera counts
+ * once, and a second unit only counts after the first one has been taken away.
+ */
+export const REPEAT_SUPPRESSION_MS = 1500;
 
 const IDEAL_CAMERA_WIDTH = 1280;
 const IDEAL_CAMERA_HEIGHT = 720;
@@ -53,6 +65,9 @@ export class BarcodeCameraScanner {
    * different value and releases what it opened, so the camera never stays on unnoticed.
    */
   private sessionId = 0;
+  /** Last code seen in continuous mode and when, to ignore the same code held in view. */
+  private lastCode: string | null = null;
+  private lastSeenAt = Number.NEGATIVE_INFINITY;
 
   /**
    * @param options - State, log and detection callbacks supplied by the owner.
@@ -117,6 +132,7 @@ export class BarcodeCameraScanner {
     this.sessionId++;
     this.isActive = false;
     this.isStarting = false;
+    this.lastCode = null;
     cancelAnimationFrame(this.frameRequestId);
     if (this.stream) releaseStream(this.stream);
     this.stream = null;
@@ -235,8 +251,11 @@ export class BarcodeCameraScanner {
       const code = await this.decodeSafely(video, decodeFrame, frameCount);
       if (session !== this.sessionId) return;
       if (code !== null && this.isActive) {
-        this.handleDetection(code);
-        return;
+        if (!this.isContinuous()) {
+          this.handleDetection(code);
+          return;
+        }
+        this.handleRepeatableDetection(code);
       }
       this.frameRequestId = requestAnimationFrame(tick);
     };
@@ -264,6 +283,32 @@ export class BarcodeCameraScanner {
       }
       return null;
     }
+  }
+
+  /**
+   * Tells whether the owner wants the camera to stay on after a code.
+   *
+   * @returns `true` in continuous mode. Asked on every reading, so the mode can change
+   *   while the camera is running without restarting it.
+   */
+  private isContinuous(): boolean {
+    return this.options.isContinuous?.() ?? false;
+  }
+
+  /**
+   * Hands a code to the owner without stopping the camera, unless it is the same code that
+   * was already in view a moment ago.
+   *
+   * @param code - The raw value that was decoded.
+   */
+  private handleRepeatableDetection(code: string): void {
+    const now = performance.now();
+    const isRepeat = code === this.lastCode && now - this.lastSeenAt < REPEAT_SUPPRESSION_MS;
+    this.lastCode = code;
+    this.lastSeenAt = now;
+    if (isRepeat) return;
+    this.options.onLog(`detected (continuous): ${code}`);
+    this.options.onDetect(code);
   }
 
   /**
