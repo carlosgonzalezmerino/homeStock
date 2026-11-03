@@ -4,6 +4,13 @@
 **Status:** Approved (brainstorming complete)
 **Scope:** React + Vite PWA frontend for the existing homeStock FastAPI backend.
 
+> **Actualización 2026-11-02.** Ha cambiado respecto a esta spec:
+> - Las cantidades admiten **decimales** y el umbral puede ser 0 (`Features/v0.1/01`).
+> - El detalle tiene dos modos (`/scan/:ean` suma, `/despensa/:ean` gestiona) y el stepper ya no es siempre absoluto (`Features/v0.1/02`).
+> - La paleta y los componentes siguen `.claude/style.md`, no los tokens Alimenda de esta spec (`Features/v0.1/06`).
+> - `html5-qrcode` ya no se usa: el escáner propio usa `BarcodeDetector` y ZXing.
+> - Sigue fuera de alcance: las caducidades.
+
 ## Goal
 
 Build a mobile-first Progressive Web App that lets a user scan grocery barcodes,

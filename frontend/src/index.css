@@ -2,68 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Design tokens follow .claude/style.md ("Sauce Labs" system).
+ * Values are RGB triplets so Tailwind can apply alpha modifiers.
+ * Dark is the default theme; light is an explicit user choice.
+ */
+
 :root {
-  --background: 251 246 238;
-  --on-background: 43 36 32;
-  --surface: 251 246 238;
-  --on-surface: 43 36 32;
-  --on-surface-variant: 107 93 82;
-  --surface-container-lowest: 255 253 249;
-  --surface-container-low: 245 238 225;
-  --surface-container: 239 229 211;
-  --surface-container-high: 232 220 197;
-  --outline: 138 122 104;
-  --outline-variant: 221 208 187;
-  --primary: 193 98 46;
-  --on-primary: 255 255 255;
-  --primary-container: 240 212 190;
-  --on-primary-container: 122 59 24;
-  --secondary: 107 122 85;
-  --secondary-container: 222 230 204;
-  --on-secondary-container: 51 66 31;
-  --tertiary: 140 109 31;
-  --tertiary-container: 243 227 184;
-  --on-tertiary-container: 74 58 10;
-  --error: 179 38 30;
-  --error-container: 246 218 211;
-  --on-error-container: 96 20 16;
+  --background: 237 247 245;
+  --on-background: 19 35 34;
+  --surface: 255 255 255;
+  --on-surface: 19 35 34;
+  --on-surface-variant: 66 79 79;
+  --surface-container-lowest: 255 255 255;
+  --surface-container-low: 255 255 255;
+  --surface-container: 255 255 255;
+  --surface-container-high: 237 247 245;
+  --outline: 130 135 134;
+  --outline-variant: 208 211 211;
+  --primary: 61 220 145;
+  --on-primary: 19 35 34;
+  --primary-container: 151 221 188;
+  --on-primary-container: 19 35 34;
+  --secondary-container: 151 221 188;
+  --on-secondary-container: 19 35 34;
+  --tertiary: 255 205 72;
+  --tertiary-container: 255 255 255;
+  --on-tertiary-container: 19 35 34;
+  --error: 19 35 34;
+  --on-error: 255 255 255;
+  --error-container: 255 255 255;
+  --on-error-container: 19 35 34;
 }
 
 .dark {
-  --surface: 33 26 21;
-  --surface-dim: 33 26 21;
-  --surface-bright: 74 63 53;
-  --surface-container-lowest: 23 15 11;
-  --surface-container-low: 42 35 29;
-  --surface-container: 50 42 35;
-  --surface-container-high: 61 51 43;
-  --surface-container-highest: 71 60 50;
-  --on-surface: 242 233 220;
-  --on-surface-variant: 203 185 168;
-  --inverse-surface: 242 233 220;
-  --inverse-on-surface: 50 42 35;
-  --outline: 156 138 120;
-  --outline-variant: 78 66 56;
-  --surface-tint: 232 145 106;
-  --primary: 232 145 106;
-  --on-primary: 74 35 13;
-  --primary-container: 138 69 37;
-  --on-primary-container: 251 220 201;
-  --inverse-primary: 193 98 46;
-  --secondary: 185 199 160;
-  --on-secondary: 44 58 26;
-  --secondary-container: 74 90 56;
-  --on-secondary-container: 220 230 203;
-  --tertiary: 217 185 106;
-  --on-tertiary: 58 46 8;
-  --tertiary-container: 107 83 32;
-  --on-tertiary-container: 243 227 184;
-  --error: 242 184 181;
-  --on-error: 96 20 16;
-  --error-container: 140 29 24;
-  --on-error-container: 249 222 220;
-  --background: 33 26 21;
-  --on-background: 242 233 220;
+  --background: 19 35 34;
+  --on-background: 255 255 255;
+  --surface: 19 35 34;
+  --on-surface: 255 255 255;
+  --on-surface-variant: 130 135 134;
+  --surface-container-lowest: 7 15 15;
+  --surface-container-low: 14 26 25;
+  --surface-container: 14 26 25;
+  --surface-container-high: 14 26 25;
+  --outline: 130 135 134;
+  --outline-variant: 66 79 79;
+  --primary: 61 220 145;
+  --on-primary: 19 35 34;
+  --primary-container: 151 221 188;
+  --on-primary-container: 19 35 34;
+  --secondary-container: 151 221 188;
+  --on-secondary-container: 19 35 34;
+  --tertiary: 255 205 72;
+  --tertiary-container: 14 26 25;
+  --on-tertiary-container: 255 255 255;
+  --error: 255 255 255;
+  --on-error: 19 35 34;
+  --error-container: 7 15 15;
+  --on-error-container: 255 255 255;
 }
 
 .material-symbols-outlined {
@@ -71,9 +67,17 @@
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
 }
 
-.card-texture {
-  background-image: radial-gradient(circle at 1px 1px, rgb(var(--on-surface) / 0.045) 1px, transparent 0);
-  background-size: 4px 4px;
+/* A light panel on the dark canvas: its text uses dark tokens, so children keep readable colours. */
+.surface-light {
+  --on-surface: 19 35 34;
+  --on-surface-variant: 66 79 79;
+  --surface-container: 255 255 255;
+  --surface-container-high: 237 247 245;
+  --outline-variant: 208 211 211;
+}
+
+body {
+  font-optical-sizing: auto;
 }
 
 @keyframes rise {

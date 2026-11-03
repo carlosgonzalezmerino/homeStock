@@ -1,8 +1,10 @@
+import pytest
 from sqlmodel import Session
 
 from app.db import create_db_and_tables, get_engine
 from app.models import InventoryItem, Product
 from app.repositories.inventory import InventoryRepository
+from tests.repositories import LOW_STOCK_CASES
 
 
 def _repo_with_products() -> InventoryRepository:
@@ -30,3 +32,21 @@ def test_delete_removes_row() -> None:
     assert repo.delete("a") is True
     assert repo.get("a") is None
     assert repo.delete("a") is False
+
+
+def test_list_low_zero_threshold_returns_only_empty_items() -> None:
+    repo = _repo_with_products()
+    repo.create(InventoryItem(ean="a", quantity=0, threshold=0))  # low: nothing left
+    repo.create(InventoryItem(ean="b", quantity=0.5, threshold=0))  # ok
+    repo.create(InventoryItem(ean="c", quantity=1, threshold=2))  # low
+    assert {item.ean for item in repo.list_low()} == {"a", "c"}
+
+
+@pytest.mark.parametrize(("quantity", "threshold", "expected"), LOW_STOCK_CASES)
+def test_list_low_matches_is_low_rule(
+    quantity: float, threshold: float, expected: bool
+) -> None:
+    repo = _repo_with_products()
+    item = repo.create(InventoryItem(ean="a", quantity=quantity, threshold=threshold))
+    assert (item.ean in {low.ean for low in repo.list_low()}) is expected
+    assert item.is_low is expected

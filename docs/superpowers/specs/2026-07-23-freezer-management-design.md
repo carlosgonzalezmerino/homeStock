@@ -3,6 +3,8 @@
 **Date:** 2026-07-23  
 **Status:** Approved
 
+> **Actualización 2026-11-02.** Lo que esta spec dejaba fuera ya está hecho: la **fecha de congelación** y el **cajón** (1 a 4) existen (`Features/v0.1/05`). La ubicación activa se comparte entre pantallas y se recuerda (`Features/v0.1/02`). «Añadir sin código» sobre un producto existente abre ahora el detalle de escaneo, y el alta de uno nuevo termina en la lista de la ubicación elegida.
+
 ## Overview
 
 Extend homeStock to track products in the freezer alongside the pantry. The freezer supports both barcode-scanned products and custom items without a barcode (e.g., tupperware of meatballs, butcher chicken). The same scan/add flow is used for both locations; the user simply selects where an item lives.

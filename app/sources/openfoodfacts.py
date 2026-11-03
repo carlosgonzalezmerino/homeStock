@@ -3,12 +3,27 @@ from app.sources.base import ProductData
 
 
 class OffSource:
+    """Product source backed by the OpenFoodFacts subset in `off_products`."""
+
     name = "openfoodfacts"
 
     def __init__(self, repo: OffProductRepository) -> None:
+        """Creates the source.
+
+        Args:
+            repo: Repository that reads the imported OpenFoodFacts table.
+        """
         self._repo = repo
 
     def lookup(self, ean: str) -> ProductData | None:
+        """Looks a product up in the imported OpenFoodFacts table.
+
+        Args:
+            ean: The barcode to look for.
+
+        Returns:
+            The product data, or `None` when the EAN was not imported.
+        """
         row = self._repo.get(ean)
         if row is None:
             return None

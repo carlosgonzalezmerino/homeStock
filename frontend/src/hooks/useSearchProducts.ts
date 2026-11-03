@@ -2,10 +2,19 @@ import { useQuery } from "@tanstack/react-query";
 import { searchProducts } from "@/api/products";
 import { queryKeys } from "./queryKeys";
 
-export function useSearchProducts(q: string) {
+/** Shortest query that is sent to the catalogue search. */
+const MIN_SEARCH_LENGTH = 2;
+
+/**
+ * Query that searches the catalogue. It stays idle until the text is long enough to be useful.
+ *
+ * @param query - The search text.
+ * @returns The react-query result holding the matching products.
+ */
+export function useSearchProducts(query: string) {
   return useQuery({
-    queryKey: queryKeys.products(q),
-    queryFn: () => searchProducts(q),
-    enabled: q.length >= 2,
+    queryKey: queryKeys.products(query),
+    queryFn: () => searchProducts(query),
+    enabled: query.length >= MIN_SEARCH_LENGTH,
   });
 }

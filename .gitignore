@@ -7,7 +7,9 @@ dist/
 build/
 .pytest_cache/
 .ruff_cache/
-homestock.db
+homestock*.db
+.coverage
+htmlcov/
 data/*.csv
 .env
 

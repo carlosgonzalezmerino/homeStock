@@ -4,6 +4,14 @@ from typing import Protocol
 
 @dataclass(frozen=True)
 class ProductData:
+    """Product information obtained from an external source, before it is stored.
+
+    Attributes:
+        ean: The product's barcode.
+        name: The product name.
+        source: Name of the source that provided it, such as `openfoodfacts`.
+    """
+
     ean: str
     name: str
     source: str
@@ -23,6 +31,17 @@ class ProductData:
 
 
 class ProductSource(Protocol):
+    """A place where product data can be looked up by EAN."""
+
     name: str
 
-    def lookup(self, ean: str) -> ProductData | None: ...
+    def lookup(self, ean: str) -> ProductData | None:
+        """Looks a product up by its barcode.
+
+        Args:
+            ean: The barcode to look for.
+
+        Returns:
+            The product data, or `None` when this source does not know the product.
+        """
+        ...

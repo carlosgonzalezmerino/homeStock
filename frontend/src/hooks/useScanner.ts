@@ -1,196 +1,85 @@
-import { useRef, useState, useCallback } from "react";
-import { BrowserMultiFormatReader } from "@zxing/browser";
-import { NotFoundException } from "@zxing/library";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { BarcodeCameraScanner, type ScannerState } from "@/scanner/BarcodeCameraScanner";
 
-declare class BarcodeDetector {
-  constructor(options?: { formats: string[] });
-  detect(image: HTMLVideoElement): Promise<Array<{ rawValue: string }>>;
-  static getSupportedFormats(): Promise<string[]>;
-}
+export type { ScannerState } from "@/scanner/BarcodeCameraScanner";
 
-export type ScannerState = "idle" | "starting" | "scanning" | "error";
+/** Number of diagnostic lines kept for the debug panel. */
+const DEBUG_LOG_LIMIT = 10;
 
+/** Values and actions returned by {@link useScanner}. */
 export interface UseScannerReturn {
-  ref: React.RefObject<HTMLVideoElement>;
+  ref: RefObject<HTMLVideoElement>;
   state: ScannerState;
   error: string | null;
-  hasBarcodeDetector: boolean;
   debugInfo: string[];
   start: () => Promise<void>;
   stop: () => void;
-  detect: () => Promise<string | null>;
 }
 
-const FORMAT_CANDIDATES = [
-  ["ean_13", "ean_8", "code_128", "upc_e", "qr_code"],
-  ["ean_13", "ean_8", "code_128"],
-  ["ean_13", "ean_8"],
-  ["ean_13"],
-];
-
-async function makeBarcodeDetector(): Promise<BarcodeDetector> {
-  // Try to intersect with getSupportedFormats first (not available on all iOS builds)
-  try {
-    const supported = await BarcodeDetector.getSupportedFormats();
-    const formats = FORMAT_CANDIDATES[0].filter((f) => supported.includes(f));
-    if (formats.length) return new BarcodeDetector({ formats });
-  } catch {
-    // getSupportedFormats not available — fall through to trial-and-error
-  }
-
-  // Trial-and-error: try progressively smaller format lists
-  for (const formats of FORMAT_CANDIDATES) {
-    try {
-      return new BarcodeDetector({ formats });
-    } catch {
-      // this set not supported — try next
-    }
-  }
-
-  // Last resort: no formats arg (browser picks defaults)
-  return new BarcodeDetector();
-}
-
-export function useScanner(onDetect?: (ean: string) => void): UseScannerReturn {
+/**
+ * React adapter around {@link BarcodeCameraScanner}.
+ *
+ * The scanner instance is created once per component. The latest `onDetect` callback is
+ * read from a ref, so a new callback never restarts the camera.
+ *
+ * @param onDetect - Called once with the first code the camera reads.
+ * @returns The video ref to attach to a `<video>` element, the scanner state and actions.
+ */
+export function useScanner(onDetect: (code: string) => void): UseScannerReturn {
   const ref = useRef<HTMLVideoElement>(null);
   const [state, setState] = useState<ScannerState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
-  const hasBarcodeDetector = "BarcodeDetector" in window;
+  const detectRef = useRef(onDetect);
+  const [scanner] = useState(() => createScanner(detectRef, setState, setError, setDebugInfo));
 
-  function dbg(msg: string) {
-    setDebugInfo((prev) => [...prev.slice(-9), msg]);
-  }
+  useEffect(() => {
+    detectRef.current = onDetect;
+  }, [onDetect]);
 
-  const streamRef = useRef<MediaStream | null>(null);
-  const rafRef = useRef<number>(0);
-  const activeRef = useRef(false);
-  const zxingRef = useRef<BrowserMultiFormatReader | null>(null);
+  useEffect(() => {
+    const stopScanner = () => scanner.stop();
+    const stopWhenHidden = () => {
+      if (document.hidden) stopScanner();
+    };
+    document.addEventListener("visibilitychange", stopWhenHidden);
+    window.addEventListener("pagehide", stopScanner);
+    return () => {
+      document.removeEventListener("visibilitychange", stopWhenHidden);
+      window.removeEventListener("pagehide", stopScanner);
+      stopScanner();
+    };
+  }, [scanner]);
 
-  const stop = useCallback(() => {
-    activeRef.current = false;
-    cancelAnimationFrame(rafRef.current);
-    zxingRef.current = null;
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-    setState("idle");
-  }, []);
+  const start = useCallback(() => scanner.start(ref.current), [scanner]);
+  const stop = useCallback(() => scanner.stop(), [scanner]);
 
-  const start = useCallback(async () => {
-    if (activeRef.current) return;
-    setError(null);
-    setState("starting");
+  return { ref, state, error, debugInfo, start, stop };
+}
 
-    dbg(`hasBarcodeDetector: ${hasBarcodeDetector}`);
-
-    let stream: MediaStream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
-      dbg("getUserMedia OK");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Cámara no disponible";
-      dbg(`getUserMedia ERR: ${msg}`);
-      setError(msg);
-      setState("error");
-      return;
-    }
-
-    if (!ref.current) {
-      stream.getTracks().forEach((t) => t.stop());
-      setState("idle");
-      return;
-    }
-
-    activeRef.current = true;
-    streamRef.current = stream;
-    const video = ref.current;
-    video.srcObject = stream;
-
-    try {
-      await video.play();
-      dbg("video.play OK");
-    } catch (err) {
-      dbg(`video.play ERR: ${err instanceof Error ? err.message : err}`);
-      stop();
-      return;
-    }
-
-    setState("scanning");
-
-    // Continuous detection loop — only if BarcodeDetector available AND callback given
-    if (hasBarcodeDetector && onDetect) {
-      let detector: BarcodeDetector;
-      try {
-        detector = await makeBarcodeDetector();
-        dbg("detector created OK");
-      } catch (err) {
-        dbg(`detector ERR: ${err instanceof Error ? err.message : err}`);
-        return;
-      }
-
-      let frameCount = 0;
-      const tick = async () => {
-        if (!activeRef.current || !ref.current) return;
-        frameCount++;
-        if (frameCount % 30 === 0) dbg(`frames scanned: ${frameCount}`);
-        try {
-          const results = await detector.detect(ref.current);
-          if (results.length > 0 && activeRef.current) {
-            dbg(`detected: ${results[0].rawValue}`);
-            activeRef.current = false;
-            onDetect(results[0].rawValue);
-            return;
-          }
-        } catch (err) {
-          if (frameCount < 5) dbg(`detect ERR: ${err instanceof Error ? err.message : err}`);
-        }
-        rafRef.current = requestAnimationFrame(tick);
-      };
-
-      rafRef.current = requestAnimationFrame(tick);
-    } else if (onDetect) {
-      // ZXing RAF loop — decodeFromVideoElement is unreliable in Safari; we drive the loop ourselves
-      const reader = new BrowserMultiFormatReader();
-      zxingRef.current = reader;
-      dbg("ZXing fallback: starting RAF loop");
-
-      let frameCount = 0;
-      const tick = async () => {
-        if (!activeRef.current || !ref.current) return;
-        frameCount++;
-        if (frameCount % 30 === 0) dbg(`ZXing frames: ${frameCount}`);
-        try {
-          const result = await reader.decodeOnceFromVideoElement(ref.current);
-          if (activeRef.current) {
-            dbg(`ZXing detected: ${result.getText()}`);
-            activeRef.current = false;
-            onDetect(result.getText());
-          }
-        } catch (err) {
-          if (!(err instanceof NotFoundException)) {
-            if (frameCount < 5) dbg(`ZXing err: ${err instanceof Error ? err.message : err}`);
-          }
-          rafRef.current = requestAnimationFrame(tick);
-        }
-      };
-
-      rafRef.current = requestAnimationFrame(tick);
-    }
-  }, [hasBarcodeDetector, onDetect, stop]);
-
-  // One-shot detect — for manual capture button (iOS fallback)
-  const detect = useCallback(async (): Promise<string | null> => {
-    if (!hasBarcodeDetector || !ref.current) return null;
-    try {
-      const detector = await makeBarcodeDetector();
-      const results = await detector.detect(ref.current);
-      return results.length > 0 ? results[0].rawValue : null;
-    } catch {
-      return null;
-    }
-  }, [hasBarcodeDetector]);
-
-  return { ref, state, error, hasBarcodeDetector, debugInfo, start, stop, detect };
+/**
+ * Builds the scanner and connects its callbacks to React state setters.
+ *
+ * @param detectRef - Ref holding the latest detection callback.
+ * @param setState - State setter for the scanner lifecycle state.
+ * @param setError - State setter for the last error message.
+ * @param setDebugInfo - State setter for the diagnostic log.
+ * @returns A new scanner instance.
+ */
+function createScanner(
+  detectRef: { current: (code: string) => void },
+  setState: (state: ScannerState) => void,
+  setError: (message: string | null) => void,
+  setDebugInfo: (update: (previous: string[]) => string[]) => void,
+): BarcodeCameraScanner {
+  return new BarcodeCameraScanner({
+    onStateChange: (nextState, message) => {
+      setState(nextState);
+      setError(message);
+    },
+    onLog: (message) => {
+      setDebugInfo((previous) => [...previous.slice(-(DEBUG_LOG_LIMIT - 1)), message]);
+    },
+    onDetect: (code) => detectRef.current(code),
+  });
 }

@@ -1,207 +1,137 @@
-import { useState, useMemo, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { useResolve, useInventory, usePatchInventory, useAddInventory, useDeleteInventory } from "@/hooks";
-import { Card, Button, QuantityStepper, Spinner, ErrorState } from "@/components";
-import type { ProductOut } from "@/types";
+import { useMemo } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useInventory, useResolve } from "@/hooks";
+import { useProductEditor, type ProductEditor } from "@/hooks/useProductEditor";
+import { BackButton, ErrorState, Spinner } from "@/components";
+import { useActiveLocation } from "@/location";
+import type { InventoryWithProductOut, ProductOut } from "@/types";
+import { AddStockCard } from "./detail/AddStockCard";
+import { ManageStockCards } from "./detail/ManageStockCards";
+import { MacrosCard, ProductHeader } from "./detail/ProductInfo";
+import { returnToPrevious, returnToScanner, type DetailMode } from "./detail/navigation";
 
-interface MacroRowProps {
-  label: string;
-  value?: number | null;
-  unit?: string;
-  highlight?: boolean;
+/** Props accepted by {@link ProductDetail}. */
+interface ProductDetailProps {
+  mode: DetailMode;
 }
 
-function MacroRow({ label, value, unit = "g", highlight = false }: MacroRowProps) {
-  if (value == null) return null;
-  return (
-    <div className={`flex justify-between py-2 ${highlight ? "font-semibold text-on-surface" : "text-on-surface-variant"}`}>
-      <span className="text-body-md">{label}</span>
-      <span className="text-body-md tabular-nums">{value.toFixed(1)} {unit}</span>
-    </div>
-  );
-}
-
-function MacrosCard({ product }: { product: ProductOut }) {
-  const hasAny =
-    product.kcal_per_100g != null ||
-    product.fat_per_100g != null ||
-    product.carbs_per_100g != null ||
-    product.proteins_per_100g != null;
-
-  if (!hasAny) return null;
-
-  return (
-    <Card>
-      <p className="text-body-lg text-on-surface-variant mb-1">Información nutricional (por 100 g)</p>
-      <div className="divide-y divide-outline-variant">
-        <MacroRow label="Calorías" value={product.kcal_per_100g} unit="kcal" highlight />
-        <MacroRow label="Proteínas" value={product.proteins_per_100g} highlight />
-        <MacroRow label="Hidratos de carbono" value={product.carbs_per_100g} />
-        <MacroRow label="  de los cuales azúcares" value={product.sugars_per_100g} />
-        <MacroRow label="Grasas" value={product.fat_per_100g} />
-        <MacroRow label="  de las cuales saturadas" value={product.saturated_fat_per_100g} />
-        <MacroRow label="Fibra alimentaria" value={product.fiber_per_100g} />
-        <MacroRow label="Sal" value={product.salt_per_100g} />
-      </div>
-    </Card>
-  );
-}
-
-export function ProductDetail() {
+/**
+ * Detail screen for one product. It is opened from the scanner (`scan` mode) or from the
+ * pantry and the alerts (`manage` mode).
+ *
+ * It waits for both the product and the inventory before showing anything, so a tracked product
+ * is never shown as new while the inventory loads.
+ *
+ * @param props - The mode the screen was opened in.
+ * @returns The product detail, or a loading or error state.
+ */
+export function ProductDetail({ mode }: ProductDetailProps) {
   const { ean = "" } = useParams<{ ean: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const productQuery = useResolve(ean);
+  const inventoryQuery = useInventory();
+  const tracked = useMemo(() => findTrackedItem(inventoryQuery.data, ean), [inventoryQuery.data, ean]);
 
-  const { data: product, isLoading: productLoading, isError: productError } = useResolve(ean);
-  const { data: inventory } = useInventory();
-
-  const tracked = useMemo(
-    () => (inventory ?? []).find((i) => i.inventory.ean === ean),
-    [inventory, ean]
+  if (productQuery.isLoading || inventoryQuery.isLoading) return <Spinner />;
+  if (productQuery.isError || !productQuery.data) {
+    return <ErrorState message="Producto no encontrado" onRetry={() => navigate(-1)} actionLabel="Volver" />;
+  }
+  if (inventoryQuery.isError) {
+    return <ErrorState message="Error al cargar el inventario" onRetry={() => void inventoryQuery.refetch()} />;
+  }
+  return (
+    <ProductView
+      product={productQuery.data}
+      ean={ean}
+      tracked={tracked}
+      mode={mode}
+      hasPreviousScreen={location.key !== "default"}
+    />
   );
+}
 
-  const initialQty = tracked?.inventory.quantity ?? 1;
-  const [qty, setQty] = useState<number | null>(null);
-  const currentQty = qty ?? initialQty;
+/**
+ * Looks up the inventory entry for an EAN.
+ *
+ * @param inventory - The inventory list, which may still be loading.
+ * @param ean - The EAN to look for.
+ * @returns The matching inventory item, or `undefined` when the product is not tracked.
+ */
+function findTrackedItem(
+  inventory: InventoryWithProductOut[] | undefined,
+  ean: string,
+): InventoryWithProductOut | undefined {
+  return (inventory ?? []).find((item) => item.inventory.ean === ean);
+}
 
-  const [threshold, setThreshold] = useState<number>(tracked?.inventory.threshold ?? 2);
-  const [thresholdDirty, setThresholdDirty] = useState(false);
+/** Props accepted by {@link ProductView}. */
+interface ProductViewProps {
+  product: ProductOut;
+  ean: string;
+  tracked: InventoryWithProductOut | undefined;
+  mode: DetailMode;
+  hasPreviousScreen: boolean;
+}
 
-  // Sync once inventory data arrives (tracked starts undefined)
-  useEffect(() => {
-    if (tracked && !thresholdDirty) setThreshold(tracked.inventory.threshold);
-  }, [tracked?.inventory.threshold]);
-
-  const patch = usePatchInventory();
-  const add = useAddInventory();
-  const remove = useDeleteInventory();
-
-  if (productLoading) return <Spinner />;
-  if (productError || !product) return <ErrorState message="Producto no encontrado" onRetry={() => navigate(-1)} />;
-
-  function handleUpdate() {
-    if (tracked) {
-      patch.mutate(
-        { ean, body: { quantity: currentQty } },
-        { onSuccess: () => navigate("/scan", { state: { added: true }, replace: true }) }
-      );
-    } else {
-      add.mutate(
-        { ean, quantity: currentQty, threshold: 2, unit: "units" },
-        { onSuccess: () => navigate("/scan", { state: { added: true }, replace: true }) }
-      );
-    }
-  }
-
-  function handleDelete() {
-    remove.mutate(ean, { onSuccess: () => navigate("/despensa") });
-  }
-
-  function handleThreshold() {
-    patch.mutate(
-      { ean, body: { threshold } },
-      { onSuccess: () => setThresholdDirty(false) }
-    );
-  }
+/**
+ * Layout of the detail screen. A tracked product in manage mode gets its controls; everything
+ * else gets the add card.
+ *
+ * @param props - The product, its EAN, its inventory entry, the mode and the history state.
+ * @returns The page with the header, the cards and the nutrition table.
+ */
+function ProductView({ product, ean, tracked, mode, hasPreviousScreen }: ProductViewProps) {
+  const navigate = useNavigate();
+  const { location: activeLocation } = useActiveLocation();
+  const editor = useProductEditor(ean, tracked);
+  const onSaved = saveDestination(navigate, mode, hasPreviousScreen);
+  const isManaging = mode === "manage" && tracked !== undefined;
 
   return (
-    <div className="flex flex-col gap-stack-md pt-stack-md">
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-1 text-body-md text-primary self-start"
-        aria-label="Volver"
-      >
-        ← Volver
-      </button>
-
-      <div className="flex items-start gap-4">
-        {product.image_url && (
-          <img
-            src={product.image_url}
-            alt={product.name}
-            className="h-20 w-20 rounded-md object-contain bg-surface-container-low shrink-0"
-          />
-        )}
-        <div className="min-w-0">
-          <h1 className="text-headline-md text-on-surface">{product.name}</h1>
-          {product.brand && (
-            <p className="text-body-sm text-on-surface-variant">{product.brand}</p>
-          )}
-          {product.category && (
-            <p className="text-body-sm text-on-surface-variant">{product.category}</p>
-          )}
-          {product.quantity_desc && (
-            <p className="text-body-sm text-on-surface-variant">{product.quantity_desc}</p>
-          )}
-          <span className="mt-2 inline-block rounded-full bg-primary-container px-2 py-0.5 text-label-md text-on-primary-container">
-            {product.source === "manual" ? "Manual" : "Reconocido"}
-          </span>
-        </div>
-      </div>
-
-      <Card>
-        <p className="text-body-lg text-on-surface-variant mb-stack-sm">
-          {tracked ? "Cantidad actual" : "Cantidad a añadir"}
-        </p>
-        <div className="flex items-center justify-between gap-4">
-          <QuantityStepper size="xs" value={currentQty} onChange={setQty} />
-          <Button size="sm" onClick={handleUpdate} disabled={patch.isPending || add.isPending}>
-            {tracked ? "Actualizar cantidad" : "Añadir a mi despensa"}
-          </Button>
-        </div>
-        {tracked && (
-          <div className="mt-3 flex gap-6">
-            {(["pantry", "freezer"] as const).map((loc) => (
-              <label key={loc} className="flex items-center gap-2 text-body-md text-on-surface cursor-pointer">
-                <input
-                  type="radio"
-                  name="location"
-                  value={loc}
-                  aria-label={loc === "pantry" ? "Despensa" : "Congelador"}
-                  checked={
-                    loc === "freezer"
-                      ? tracked.inventory.location === "freezer"
-                      : tracked.inventory.location !== "freezer"
-                  }
-                  onChange={() => patch.mutate({ ean, body: { location: loc } })}
-                  className="accent-primary"
-                />
-                {loc === "pantry" ? "Despensa" : "Congelador"}
-              </label>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      {tracked && (
-        <Card>
-          <p className="text-body-lg text-on-surface-variant mb-1">Umbral de alerta</p>
-          <p className="text-body-sm text-on-surface-variant mb-stack-sm">
-            Recibirás alerta cuando la cantidad sea inferior a este valor
-          </p>
-          <div className="flex items-center justify-between gap-4">
-            <QuantityStepper
-              size="xs"
-              value={threshold}
-              onChange={(n) => { setThreshold(n); setThresholdDirty(true); }}
-            />
-            <Button
-              size="sm"
-              onClick={handleThreshold}
-              disabled={!thresholdDirty || patch.isPending}
-            >
-              Guardar
-            </Button>
-          </div>
-        </Card>
+    <div className="flex flex-col gap-6 pt-6">
+      <BackButton onBack={() => returnToPrevious(navigate, hasPreviousScreen, mode)} />
+      <ProductHeader product={product} />
+      {isManaging ? (
+        <ManageStockCards tracked={tracked} editor={editor} onSaved={onSaved} onRemoved={() => returnToPrevious(navigate, false, "manage")} />
+      ) : (
+        <AddStockCard tracked={tracked} activeLocation={activeLocation} editor={editor} onSaved={onSaved} />
       )}
-
       <MacrosCard product={product} />
-
-      {tracked && (
-        <Button variant="ghost" onClick={handleDelete} disabled={remove.isPending}>
-          Quitar de la despensa
-        </Button>
-      )}
+      <SaveError editor={editor} />
     </div>
   );
+}
+
+/**
+ * Chooses where the user goes after a save, according to the mode of the screen.
+ *
+ * @param navigate - Router navigate function.
+ * @param mode - The mode the screen was opened in.
+ * @param hasPreviousScreen - Whether there is a previous screen to go back to.
+ * @returns The callback to run after a successful save.
+ */
+function saveDestination(
+  navigate: ReturnType<typeof useNavigate>,
+  mode: DetailMode,
+  hasPreviousScreen: boolean,
+): () => void {
+  if (mode === "scan") return () => returnToScanner(navigate);
+  return () => returnToPrevious(navigate, hasPreviousScreen, mode);
+}
+
+/** Props accepted by {@link SaveError}. */
+interface SaveErrorProps {
+  editor: ProductEditor;
+}
+
+/**
+ * Message under the cards when the last save failed. The entered values are kept.
+ *
+ * @param props - The editor whose last error is shown.
+ * @returns The message, or nothing when there is no error.
+ */
+function SaveError({ editor }: SaveErrorProps) {
+  if (!editor.errorMessage) return null;
+  return <p className="text-body-sm text-error">{editor.errorMessage}</p>;
 }

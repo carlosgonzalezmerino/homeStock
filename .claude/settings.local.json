@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(docker build *)",
+      "Bash(command -v docker npm node)",
+      "Bash(find / -maxdepth 4 -iname \"node\" -o -iname \"npm\")",
+      "Bash(apt list *)",
+      "Read(//opt/**)",
+      "Read(//usr/lib/**)",
+      "Bash(uv run *)",
+      "Bash(docker compose *)",
+      "Bash(mount)",
+      "Bash(rm -f /tmp/src_test.db /tmp/dst_test.db)",
+      "Bash(curl -s -m 3 -o /dev/null -w \"%{http_code}\\\\n\" http://192.168.95.50:8100/api/health)",
+      "Bash(python3 -c \"import socket; s=socket.socket\\(\\); s.settimeout\\(3\\); print\\(s.connect_ex\\(\\('192.168.95.50', 3306\\)\\)\\)\")"
+    ]
+  }
+}

@@ -1,0 +1,1327 @@
+{
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "InventoryCreate": {
+        "description": "The stock to store for a product.\n\nQuantities cannot be negative and have at most two decimals.",
+        "properties": {
+          "drawer": {
+            "anyOf": [
+              {
+                "maximum": 4.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Drawer"
+          },
+          "ean": {
+            "title": "Ean",
+            "type": "string"
+          },
+          "frozen_at": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frozen At"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "enum": [
+                  "pantry",
+                  "freezer"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "quantity": {
+            "minimum": 0.0,
+            "title": "Quantity",
+            "type": "number"
+          },
+          "threshold": {
+            "minimum": 0.0,
+            "title": "Threshold",
+            "type": "number"
+          },
+          "unit": {
+            "default": "units",
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ean",
+          "quantity",
+          "threshold"
+        ],
+        "title": "InventoryCreate",
+        "type": "object"
+      },
+      "InventoryOut": {
+        "description": "A stock row as the API returns it.",
+        "properties": {
+          "drawer": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Drawer"
+          },
+          "ean": {
+            "title": "Ean",
+            "type": "string"
+          },
+          "frozen_at": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frozen At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "number"
+          },
+          "threshold": {
+            "title": "Threshold",
+            "type": "number"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "ean",
+          "quantity",
+          "threshold",
+          "unit"
+        ],
+        "title": "InventoryOut",
+        "type": "object"
+      },
+      "InventoryPatch": {
+        "description": "A partial edit of a stock row.\n\nQuantity, threshold and unit can be changed but never cleared.",
+        "properties": {
+          "drawer": {
+            "anyOf": [
+              {
+                "maximum": 4.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Drawer"
+          },
+          "frozen_at": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frozen At"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "enum": [
+                  "pantry",
+                  "freezer"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "threshold": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          }
+        },
+        "title": "InventoryPatch",
+        "type": "object"
+      },
+      "InventoryWithProductOut": {
+        "description": "A stock row together with its product and whether it is low on stock.",
+        "properties": {
+          "inventory": {
+            "$ref": "#/components/schemas/InventoryOut"
+          },
+          "low": {
+            "title": "Low",
+            "type": "boolean"
+          },
+          "product": {
+            "$ref": "#/components/schemas/ProductOut"
+          }
+        },
+        "required": [
+          "inventory",
+          "product",
+          "low"
+        ],
+        "title": "InventoryWithProductOut",
+        "type": "object"
+      },
+      "ProductCreate": {
+        "description": "The fields needed to create a product by hand.",
+        "properties": {
+          "brand": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand"
+          },
+          "carbs_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Carbs Per 100G"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "ean": {
+            "title": "Ean",
+            "type": "string"
+          },
+          "fat_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fat Per 100G"
+          },
+          "fiber_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fiber Per 100G"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "kcal_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kcal Per 100G"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "proteins_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proteins Per 100G"
+          },
+          "quantity_desc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity Desc"
+          },
+          "salt_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Salt Per 100G"
+          },
+          "saturated_fat_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Saturated Fat Per 100G"
+          },
+          "sugars_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sugars Per 100G"
+          }
+        },
+        "required": [
+          "ean",
+          "name"
+        ],
+        "title": "ProductCreate",
+        "type": "object"
+      },
+      "ProductOut": {
+        "description": "A catalogue product as the API returns it.",
+        "properties": {
+          "brand": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand"
+          },
+          "carbs_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Carbs Per 100G"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "ean": {
+            "title": "Ean",
+            "type": "string"
+          },
+          "fat_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fat Per 100G"
+          },
+          "fiber_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fiber Per 100G"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "kcal_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kcal Per 100G"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "proteins_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proteins Per 100G"
+          },
+          "quantity_desc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity Desc"
+          },
+          "salt_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Salt Per 100G"
+          },
+          "saturated_fat_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Saturated Fat Per 100G"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "sugars_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sugars Per 100G"
+          }
+        },
+        "required": [
+          "ean",
+          "name",
+          "source"
+        ],
+        "title": "ProductOut",
+        "type": "object"
+      },
+      "ProductPatch": {
+        "description": "A partial edit of a product. Only the fields that are sent change.",
+        "properties": {
+          "brand": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand"
+          },
+          "carbs_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Carbs Per 100G"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "fat_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fat Per 100G"
+          },
+          "fiber_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fiber Per 100G"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "kcal_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kcal Per 100G"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "proteins_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proteins Per 100G"
+          },
+          "quantity_desc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity Desc"
+          },
+          "salt_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Salt Per 100G"
+          },
+          "saturated_fat_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Saturated Fat Per 100G"
+          },
+          "sugars_per_100g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sugars Per 100G"
+          }
+        },
+        "title": "ProductPatch",
+        "type": "object"
+      },
+      "ShoppingListItemOut": {
+        "description": "One line of the shopping list.",
+        "properties": {
+          "ean": {
+            "title": "Ean",
+            "type": "string"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "number"
+          },
+          "threshold": {
+            "title": "Threshold",
+            "type": "number"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ean",
+          "name",
+          "quantity",
+          "threshold",
+          "unit"
+        ],
+        "title": "ShoppingListItemOut",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "homeStock",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/health": {
+      "get": {
+        "description": "Reports that the service is up.",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health Api Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/api/inventory": {
+      "get": {
+        "description": "Lists the tracked items with their product.\n\nArgs:\n    low: When true, only the items that need restocking are returned.\n    service: The inventory service.\n\nReturns:\n    Each item with its product and a flag that says whether it is low on stock.",
+        "operationId": "list_inventory_api_inventory_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "low",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Low",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InventoryWithProductOut"
+                  },
+                  "title": "Response List Inventory Api Inventory Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Inventory",
+        "tags": [
+          "inventory"
+        ]
+      },
+      "post": {
+        "description": "Starts tracking a product that is in the catalogue.\n\nArgs:\n    payload: The stock to store.\n    service: The inventory service.\n\nReturns:\n    The stored item.\n\nRaises:\n    HTTPException: 404 when the product is not in the catalogue, 409 when it is\n        already tracked, 422 when a freezer-only field is sent outside the freezer.",
+        "operationId": "create_inventory_api_inventory_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Inventory",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/inventory/{ean}": {
+      "delete": {
+        "description": "Stops tracking a product. Its catalogue entry is kept.\n\nArgs:\n    ean: The product's barcode.\n    service: The inventory service.\n\nReturns:\n    An empty 204 response.\n\nRaises:\n    HTTPException: 404 when the product is not tracked.",
+        "operationId": "delete_inventory_api_inventory__ean__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ean",
+            "required": true,
+            "schema": {
+              "title": "Ean",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Inventory",
+        "tags": [
+          "inventory"
+        ]
+      },
+      "patch": {
+        "description": "Edits the stock of a tracked product. Only the fields that are sent change.\n\nArgs:\n    ean: The product's barcode.\n    payload: The fields to change.\n    service: The inventory service.\n\nReturns:\n    The updated item.\n\nRaises:\n    HTTPException: 404 when the product is not tracked, 422 when a freezer-only\n        field would stay set outside the freezer.",
+        "operationId": "patch_inventory_api_inventory__ean__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ean",
+            "required": true,
+            "schema": {
+              "title": "Ean",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Inventory",
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/products": {
+      "get": {
+        "description": "Searches the catalogue by name or brand.\n\nArgs:\n    q: The text to look for.\n    repo: The product repository.\n\nReturns:\n    The matching products, up to a fixed limit.",
+        "operationId": "search_products_api_products_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 100,
+              "title": "Q",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProductOut"
+                  },
+                  "title": "Response Search Products Api Products Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search Products",
+        "tags": [
+          "products"
+        ]
+      },
+      "post": {
+        "description": "Creates a product by hand. Its source is recorded as `manual`.\n\nArgs:\n    payload: The product fields.\n    repo: The product repository.\n\nReturns:\n    The created product.\n\nRaises:\n    HTTPException: 409 when a product with that EAN already exists.",
+        "operationId": "create_product_api_products_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Product",
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/api/products/{ean}": {
+      "get": {
+        "description": "Reads one product from the catalogue.\n\nArgs:\n    ean: The product's barcode.\n    repo: The product repository.\n\nReturns:\n    The product.\n\nRaises:\n    HTTPException: 404 when the product is not in the catalogue.",
+        "operationId": "get_product_api_products__ean__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ean",
+            "required": true,
+            "schema": {
+              "title": "Ean",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Product",
+        "tags": [
+          "products"
+        ]
+      },
+      "patch": {
+        "description": "Edits a product. Only the fields that are sent change.\n\nArgs:\n    ean: The product's barcode.\n    payload: The fields to change.\n    repo: The product repository.\n\nReturns:\n    The updated product.\n\nRaises:\n    HTTPException: 404 when the product is not in the catalogue.",
+        "operationId": "patch_product_api_products__ean__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ean",
+            "required": true,
+            "schema": {
+              "title": "Ean",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Product",
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/api/resolve/{ean}": {
+      "get": {
+        "description": "Resolves a barcode to a product: the catalogue first, then the external sources.\n\nA 404 is a normal answer here: it tells the client to ask the user for the data.\n\nArgs:\n    ean: The barcode to resolve.\n    resolver: The EAN resolver.\n\nReturns:\n    The product, or a 404 response with the EAN when nobody knows it.",
+        "operationId": "resolve_ean_api_resolve__ean__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ean",
+            "required": true,
+            "schema": {
+              "title": "Ean",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Ean",
+        "tags": [
+          "resolve"
+        ]
+      }
+    },
+    "/api/shopping-list": {
+      "get": {
+        "description": "Lists what needs to be bought: the items that are low on stock.\n\nArgs:\n    service: The shopping list service.\n\nReturns:\n    One line per item, with its name, current quantity, threshold and image.",
+        "operationId": "get_shopping_list_api_shopping_list_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ShoppingListItemOut"
+                  },
+                  "title": "Response Get Shopping List Api Shopping List Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Shopping List",
+        "tags": [
+          "shopping-list"
+        ]
+      }
+    }
+  }
+}

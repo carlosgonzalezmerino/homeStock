@@ -1,3 +1,8 @@
+/**
+ * Loading indicator announced to assistive technology as "Cargando".
+ *
+ * @returns A centered, rotating ring.
+ */
 export function Spinner() {
   return (
     <div className="flex justify-center py-16">

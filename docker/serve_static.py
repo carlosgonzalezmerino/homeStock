@@ -2,6 +2,7 @@
 Wraps the FastAPI app and mounts the built frontend as static files.
 The SPA catch-all serves index.html for any unknown path so React Router works.
 """
+
 from pathlib import Path
 
 from fastapi.responses import FileResponse

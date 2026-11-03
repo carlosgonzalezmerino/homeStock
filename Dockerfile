@@ -19,8 +19,10 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
-# App source
+# App source and migrations
 COPY app/ ./app/
+COPY alembic.ini ./
+COPY alembic/ ./alembic/
 
 # Frontend static files
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
@@ -30,4 +32,5 @@ COPY docker/serve_static.py ./docker/serve_static.py
 
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "docker.serve_static:app", "--host", "0.0.0.0", "--port", "8100"]
+# Apply pending migrations before serving, so the schema always matches the code
+CMD ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn docker.serve_static:app --host 0.0.0.0 --port 8100"]

@@ -1,229 +1,161 @@
-import { useState, useEffect } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSearchProducts, useCreateProduct, useAddInventory } from "@/hooks";
-import { Button, Card, Spinner } from "@/components";
-import type { ProductOut, Location } from "@/types";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAddInventory, useCreateProduct, useDebouncedValue, useSearchProducts } from "@/hooks";
+import { BackButton, Button, Card, FormField, FreezerFields, INPUT_CLASS, LocationPicker, Spinner } from "@/components";
+import { DEFAULT_THRESHOLD, DEFAULT_UNIT } from "@/constants/inventory";
+import { useActiveLocation } from "@/location";
+import { CONFLICT_MESSAGE, SAVE_ERROR_MESSAGE } from "@/hooks/useProductEditor";
+import type { InventoryCreate, Location, ProductCreate, ProductOut } from "@/types";
+import { localIsoDate } from "@/utils/date";
+import { isConflictError } from "@/utils/errors";
+import { useCreateOnce } from "@/hooks/useCreateOnce";
+import { generateCustomEan } from "@/utils/customEan";
+import { freezerCreateFields } from "@/utils/freezer";
+import { parseQuantity, validateRequiredQuantity } from "@/utils/parse";
 
-function generateCustomEan(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let result = "CUSTOM-";
-  for (let i = 0; i < 8; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
+/** How long the search waits after the last keystroke before querying the catalogue. */
+const SEARCH_DEBOUNCE_MS = 300;
+/** Storage location preselected for products added without a barcode. */
+const DEFAULT_LOCATION: Location = "freezer";
+/** Quantity preselected for products added without a barcode. */
+const CUSTOM_DEFAULT_QUANTITY = 1;
+/** Threshold preselected for products added without a barcode. */
+const CUSTOM_DEFAULT_THRESHOLD = 1;
+/** Error text for a name that is left empty. */
+const NAME_REQUIRED_MESSAGE = "Requerido";
 
-type Step = "search" | "create" | "quantity";
-
-interface QuantityFormValues {
+/** Values of the details step. Numeric fields stay as text until submit. */
+export interface DetailsFormValues {
+  name: string;
+  brand: string;
   quantity: string;
   threshold: string;
   unit: string;
   location: Location;
-  name: string;
-  brand: string;
+  drawer: number | null;
+  frozenAt: string | null;
 }
 
+/** Validation messages of the details step, keyed by field. */
+export interface DetailsErrors {
+  name?: string;
+  quantity?: string;
+  threshold?: string;
+}
+
+/** Field setter used by the details inputs. */
+type FieldChange = <K extends keyof DetailsFormValues>(key: K, value: DetailsFormValues[K]) => void;
+
+/**
+ * Screen for adding a product that has no barcode.
+ *
+ * Step 1 searches the catalogue. Choosing a match opens the normal scan detail for it, so
+ * stock is never added twice. "Crear nuevo" opens step 2, which creates the product and its stock.
+ *
+ * @returns The custom entry page.
+ */
 export function CustomEntry() {
-  const navigate = useNavigate();
-  const [step, setStep] = useState<Step>("search");
   const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState<ProductOut | null>(null);
-  const [formValues, setFormValues] = useState<QuantityFormValues>({
-    quantity: "1",
-    threshold: "1",
-    unit: "units",
-    location: "freezer",
-    name: "",
-    brand: "",
-  });
+  const [isCreating, setIsCreating] = useState(false);
 
-  const [customEan, setCustomEan] = useState<string | null>(null);
-
-  const createProduct = useCreateProduct();
-  const addInventory = useAddInventory();
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(query), 300);
-    return () => clearTimeout(timer);
-  }, [query]);
-
-  const { data: searchResults = [], isLoading: isSearching } = useSearchProducts(debouncedQuery);
-
-  function handleSelectProduct(product: ProductOut) {
-    setSelectedProduct(product);
-    setStep("quantity");
+  if (!isCreating) {
+    return <SearchStep query={query} onQueryChange={setQuery} onCreateNew={() => setIsCreating(true)} />;
   }
+  return <DetailsStep onBack={() => setIsCreating(false)} />;
+}
 
-  function handleCreateNew() {
-    setSelectedProduct(null);
-    setStep("create");
-  }
+/** Props accepted by {@link SearchStep}. */
+interface SearchStepProps {
+  query: string;
+  onQueryChange: (query: string) => void;
+  onCreateNew: () => void;
+}
 
-  async function handleQuantitySubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    let ean: string;
-
-    if (step === "create") {
-      const eanToUse = customEan ?? generateCustomEan();
-      if (!customEan) setCustomEan(eanToUse);
-      await createProduct.mutateAsync({
-        ean: eanToUse,
-        name: formValues.name,
-        ...(formValues.brand ? { brand: formValues.brand } : {}),
-      });
-      ean = eanToUse;
-    } else {
-      ean = selectedProduct!.ean;
-    }
-
-    await addInventory.mutateAsync({
-      ean,
-      quantity: parseInt(formValues.quantity, 10),
-      threshold: parseInt(formValues.threshold, 10),
-      unit: formValues.unit || "units",
-      location: formValues.location,
-    });
-
-    navigate("/despensa");
-  }
-
-  const isPending = createProduct.isPending || addInventory.isPending;
-
-  if (step === "search") {
-    return (
-      <div className="flex flex-col gap-stack-md pt-stack-md">
-        <h1 className="text-headline-md text-on-surface">Añadir sin código</h1>
-
-        <input
-          role="searchbox"
-          type="search"
-          placeholder="Buscar producto existente..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="w-full rounded-lg border border-outline-variant bg-surface-container px-4 py-3 text-body-lg text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-
-        {isSearching && <Spinner />}
-
-        {searchResults.length > 0 && (
-          <div className="space-y-stack-sm">
-            {searchResults.map((product) => (
-              <button
-                key={product.ean}
-                onClick={() => handleSelectProduct(product)}
-                className="w-full text-left"
-                type="button"
-              >
-                <Card>
-                  <p className="text-body-lg font-medium text-on-surface">{product.name}</p>
-                  {product.brand && (
-                    <p className="text-body-sm text-on-surface-variant">{product.brand}</p>
-                  )}
-                </Card>
-              </button>
-            ))}
-          </div>
-        )}
-
-        <Button variant="ghost" onClick={handleCreateNew} type="button">
-          Crear nuevo
-        </Button>
-      </div>
-    );
-  }
+/**
+ * Step 1: catalogue search with a shortcut to create a new product.
+ *
+ * @param props - The search text, its setter and the callback for "Crear nuevo".
+ * @returns The search page.
+ */
+function SearchStep({ query, onQueryChange, onCreateNew }: SearchStepProps) {
+  const navigate = useNavigate();
+  const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
+  const { data: results = [], isLoading: isSearching } = useSearchProducts(debouncedQuery);
 
   return (
-    <div className="flex flex-col gap-stack-md pt-stack-md">
-      <button
-        onClick={() => setStep("search")}
-        className="flex items-center gap-1 text-body-md text-primary self-start"
-        type="button"
-      >
-        ← Volver
-      </button>
+    <div className="flex flex-col gap-6 pt-6">
+      <h1 className="text-heading-sm text-on-surface">Añadir sin código</h1>
+      <input
+        role="searchbox"
+        type="search"
+        placeholder="Buscar producto existente..."
+        value={query}
+        onChange={(event) => onQueryChange(event.target.value)}
+        className={INPUT_CLASS}
+      />
+      {isSearching && <Spinner />}
+      <SearchResultList products={results} onSelect={(ean) => navigate(`/scan/${encodeURIComponent(ean)}`)} />
+      <Button variant="ghost" onClick={onCreateNew} type="button">
+        Crear nuevo
+      </Button>
+    </div>
+  );
+}
 
-      <h1 className="text-headline-md text-on-surface">
-        {selectedProduct ? selectedProduct.name : "Nuevo producto"}
-      </h1>
+/** Props accepted by {@link SearchResultList}. */
+interface SearchResultListProps {
+  products: ProductOut[];
+  onSelect: (ean: string) => void;
+}
 
-      <form role="form" onSubmit={handleQuantitySubmit} className="flex flex-col gap-4">
-        {step === "create" && (
-          <>
-            <Field label="Nombre">
-              <input
-                aria-label="nombre"
-                value={formValues.name}
-                onChange={(e) => setFormValues({ ...formValues, name: e.target.value })}
-                required
-                className="w-full rounded-lg border border-outline-variant bg-surface-container px-4 py-3 text-body-lg text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </Field>
-            <Field label="Marca (opcional)">
-              <input
-                value={formValues.brand}
-                onChange={(e) => setFormValues({ ...formValues, brand: e.target.value })}
-                className="w-full rounded-lg border border-outline-variant bg-surface-container px-4 py-3 text-body-lg text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </Field>
-          </>
-        )}
+/**
+ * Clickable list of catalogue matches.
+ *
+ * @param props - The matches and the callback with the EAN of the one the user picks.
+ * @returns The list, or nothing when there are no matches.
+ */
+function SearchResultList({ products, onSelect }: SearchResultListProps) {
+  if (products.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-3">
+      {products.map((product) => (
+        <button key={product.ean} type="button" onClick={() => onSelect(product.ean)} className="w-full text-left">
+          <Card>
+            <p className="text-body text-on-surface">{product.name}</p>
+            {product.brand && <p className="text-body-sm text-on-surface-variant">{product.brand}</p>}
+          </Card>
+        </button>
+      ))}
+    </div>
+  );
+}
 
-        <Field label="Ubicación">
-          <div className="flex gap-4">
-            {(["pantry", "freezer"] as Location[]).map((loc) => (
-              <label key={loc} className="flex items-center gap-2 text-body-lg text-on-surface cursor-pointer">
-                <input
-                  type="radio"
-                  name="location"
-                  value={loc}
-                  aria-label={loc === "pantry" ? "Despensa" : "Congelador"}
-                  checked={formValues.location === loc}
-                  onChange={() => setFormValues({ ...formValues, location: loc })}
-                  className="accent-primary"
-                />
-                {loc === "pantry" ? "Despensa" : "Congelador"}
-              </label>
-            ))}
-          </div>
-        </Field>
+/**
+ * Step 2: a new product and its stock. The code is generated once, so a retry reuses it.
+ *
+ * @param props - The callback that returns to step 1.
+ * @returns The details form.
+ */
+function DetailsStep({ onBack }: { onBack: () => void }) {
+  const [values, setValues] = useState<DetailsFormValues>(buildInitialValues);
+  const [errors, setErrors] = useState<DetailsErrors>({});
+  const { saveEntry, isPending, errorMessage } = useCustomEntrySave(values, setErrors);
 
-        <Field label="Cantidad inicial" htmlFor="field-quantity">
-          <input
-            id="field-quantity"
-            type="number"
-            min={1}
-            value={formValues.quantity}
-            onChange={(e) => setFormValues({ ...formValues, quantity: e.target.value })}
-            className="w-full rounded-lg border border-outline-variant bg-surface-container px-4 py-3 text-body-lg text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </Field>
+  const updateValue: FieldChange = (key, value) => {
+    setValues((previous) => ({ ...previous, [key]: value }));
+  };
 
-        <Field label="Umbral mínimo" htmlFor="field-threshold">
-          <input
-            id="field-threshold"
-            type="number"
-            min={0}
-            value={formValues.threshold}
-            onChange={(e) => setFormValues({ ...formValues, threshold: e.target.value })}
-            className="w-full rounded-lg border border-outline-variant bg-surface-container px-4 py-3 text-body-lg text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </Field>
-
-        <Field label="Unidad" htmlFor="field-unit">
-          <input
-            id="field-unit"
-            value={formValues.unit}
-            onChange={(e) => setFormValues({ ...formValues, unit: e.target.value })}
-            className="w-full rounded-lg border border-outline-variant bg-surface-container px-4 py-3 text-body-lg text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </Field>
-
-        {(createProduct.isError || addInventory.isError) && (
-          <p className="text-body-sm text-error">Error al guardar. Inténtalo de nuevo.</p>
-        )}
-
+  return (
+    <div className="flex flex-col gap-6 pt-6">
+      <BackButton onBack={onBack} />
+      <h1 className="text-heading-sm text-on-surface">Nuevo producto</h1>
+      <form role="form" onSubmit={saveEntry} className="flex flex-col gap-4">
+        <CreateFields values={values} errors={errors} onChange={updateValue} />
+        <LocationField value={values.location} onChange={(location) => updateValue("location", location)} />
+        {values.location === "freezer" && <FreezerDetails values={values} onChange={updateValue} />}
+        <StockFields values={values} errors={errors} onChange={updateValue} />
+        {errorMessage && <p className="text-body-sm text-error">{errorMessage}</p>}
         <Button type="submit" disabled={isPending}>
           {isPending ? "Guardando..." : "Guardar"}
         </Button>
@@ -232,11 +164,221 @@ export function CustomEntry() {
   );
 }
 
-function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) {
+/** Props accepted by {@link LocationField}. */
+interface LocationFieldProps {
+  value: Location;
+  onChange: (location: Location) => void;
+}
+
+/**
+ * Storage location of the new product.
+ *
+ * @param props - The chosen location and its change callback.
+ * @returns The labelled location picker.
+ */
+function LocationField({ value, onChange }: LocationFieldProps) {
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={htmlFor} className="text-label-md text-on-surface-variant">{label}</label>
-      {children}
-    </div>
+    <FormField label="Ubicación">
+      <LocationPicker value={value} onChange={onChange} name="custom-location" />
+    </FormField>
+  );
+}
+
+/**
+ * Drawer and frozen date of the new product, which only apply to the freezer.
+ *
+ * @param props - The current values and the change callback.
+ * @returns The freezer fields.
+ */
+function FreezerDetails({ values, onChange }: Pick<DetailsFieldsProps, "values" | "onChange">) {
+  return (
+    <FreezerFields
+      drawer={values.drawer}
+      frozenAt={values.frozenAt}
+      onDrawerChange={(drawer) => onChange("drawer", drawer)}
+      onFrozenAtChange={(frozenAt) => onChange("frozenAt", frozenAt)}
+    />
+  );
+}
+
+/**
+ * Creates the initial values of the details form.
+ *
+ * @returns The default values for a product added without a barcode.
+ */
+function buildInitialValues(): DetailsFormValues {
+  return {
+    name: "",
+    brand: "",
+    quantity: String(CUSTOM_DEFAULT_QUANTITY),
+    threshold: String(CUSTOM_DEFAULT_THRESHOLD),
+    unit: DEFAULT_UNIT,
+    location: DEFAULT_LOCATION,
+    drawer: null,
+    frozenAt: localIsoDate(),
+  };
+}
+
+/**
+ * Checks the details form and returns a message for each invalid field.
+ *
+ * @param values - The values the user entered.
+ * @returns The messages by field. An empty object means the form is valid.
+ */
+export function validateDetails(values: DetailsFormValues): DetailsErrors {
+  const errors: DetailsErrors = {};
+  if (values.name.trim() === "") errors.name = NAME_REQUIRED_MESSAGE;
+  const quantityError = validateRequiredQuantity(values.quantity);
+  if (quantityError) errors.quantity = quantityError;
+  const thresholdError = validateRequiredQuantity(values.threshold);
+  if (thresholdError) errors.threshold = thresholdError;
+  return errors;
+}
+
+/** What the save hook returns to the details step. */
+interface CustomEntrySave {
+  saveEntry: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  isPending: boolean;
+  errorMessage: string | null;
+}
+
+/**
+ * Save flow of the custom entry: creates the product once, then adds it to the inventory.
+ *
+ * @param values - The submitted details.
+ * @param setErrors - Receives the validation messages when the form is not valid.
+ * @returns The submit handler, the pending flag and the message of the last failure.
+ */
+function useCustomEntrySave(values: DetailsFormValues, setErrors: (errors: DetailsErrors) => void): CustomEntrySave {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { setLocation } = useActiveLocation();
+  const [customEan] = useState(generateCustomEan);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const createProduct = useCreateProduct();
+  const addInventory = useAddInventory();
+  const ensureProductSaved = useCreateOnce(() => createProduct.mutateAsync(buildProductBody(customEan, values)));
+
+  async function saveEntry(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    const found = validateDetails(values);
+    setErrors(found);
+    if (Object.keys(found).length > 0) return;
+    setErrorMessage(null);
+    try {
+      await ensureProductSaved();
+      await addInventory.mutateAsync(buildInventoryBody(customEan, values));
+    } catch (error) {
+      setErrorMessage(isConflictError(error) ? CONFLICT_MESSAGE : SAVE_ERROR_MESSAGE);
+      if (isConflictError(error)) void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      return;
+    }
+    setLocation(values.location);
+    navigate("/despensa", { state: { added: true }, replace: true });
+  }
+
+  return { saveEntry, isPending: createProduct.isPending || addInventory.isPending, errorMessage };
+}
+
+/**
+ * Builds the product creation body for a product added without a barcode.
+ *
+ * @param ean - The generated identifier for the product.
+ * @param values - The submitted details.
+ * @returns A {@link ProductCreate} body. The brand is omitted when empty.
+ */
+export function buildProductBody(ean: string, values: DetailsFormValues): ProductCreate {
+  return {
+    ean,
+    name: values.name,
+    ...(values.brand ? { brand: values.brand } : {}),
+  };
+}
+
+/**
+ * Builds the inventory creation body, applying defaults to empty fields.
+ *
+ * @param ean - EAN of the product being stored.
+ * @param values - The submitted details.
+ * @returns An {@link InventoryCreate} body.
+ */
+export function buildInventoryBody(ean: string, values: DetailsFormValues): InventoryCreate {
+  return {
+    ean,
+    quantity: parseQuantity(values.quantity, CUSTOM_DEFAULT_QUANTITY),
+    threshold: parseQuantity(values.threshold, DEFAULT_THRESHOLD),
+    unit: values.unit || DEFAULT_UNIT,
+    location: values.location,
+    ...freezerCreateFields(values.location, values.drawer, values.frozenAt),
+  };
+}
+
+/** Props accepted by the detail field groups. */
+interface DetailsFieldsProps {
+  values: DetailsFormValues;
+  errors: DetailsErrors;
+  onChange: FieldChange;
+}
+
+/**
+ * Name and brand inputs of a new product.
+ *
+ * @param props - The current values, the validation messages and the change callback.
+ * @returns The name and brand fields.
+ */
+function CreateFields({ values, errors, onChange }: DetailsFieldsProps) {
+  return (
+    <>
+      <FormField label="Nombre" error={errors.name}>
+        <input
+          aria-label="nombre"
+          value={values.name}
+          onChange={(event) => onChange("name", event.target.value)}
+          className={INPUT_CLASS}
+        />
+      </FormField>
+      <FormField label="Marca (opcional)" htmlFor="field-brand">
+        <input
+          id="field-brand"
+          value={values.brand}
+          onChange={(event) => onChange("brand", event.target.value)}
+          className={INPUT_CLASS}
+        />
+      </FormField>
+    </>
+  );
+}
+
+/**
+ * Quantity, threshold and unit inputs. Both numbers accept a decimal comma, and the threshold may be 0.
+ *
+ * @param props - The current values, the validation messages and the change callback.
+ * @returns The stock fields.
+ */
+function StockFields({ values, errors, onChange }: DetailsFieldsProps) {
+  return (
+    <>
+      <FormField label="Cantidad inicial" htmlFor="field-quantity" error={errors.quantity}>
+        <input
+          id="field-quantity"
+          inputMode="decimal"
+          value={values.quantity}
+          onChange={(event) => onChange("quantity", event.target.value)}
+          className={INPUT_CLASS}
+        />
+      </FormField>
+      <FormField label="Umbral mínimo" htmlFor="field-threshold" error={errors.threshold}>
+        <input
+          id="field-threshold"
+          inputMode="decimal"
+          value={values.threshold}
+          onChange={(event) => onChange("threshold", event.target.value)}
+          className={INPUT_CLASS}
+        />
+      </FormField>
+      <FormField label="Unidad" htmlFor="field-unit">
+        <input id="field-unit" value={values.unit} onChange={(event) => onChange("unit", event.target.value)} className={INPUT_CLASS} />
+      </FormField>
+    </>
   );
 }

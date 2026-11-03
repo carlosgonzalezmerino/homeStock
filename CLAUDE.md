@@ -1,0 +1,37 @@
+# homeStock
+
+Barcode-driven household inventory. FastAPI + SQLModel backend, React PWA frontend.
+Start with `README.md`, then `docs/ARCHITECTURE.md`.
+
+## Rules for working here
+
+- **Follow the team style:** `../Trabajo/Desarrollo/DevelopStyle.md`. Specs first, then code.
+  Functions up to 30 lines, `try` up to 7 lines, docstrings with Args and Returns on everything
+  public, named constants, specific exceptions, no dependency injection beyond what exists.
+- **Specs live in `docs/Features/`.** The v0.1 iteration is in `docs/Features/v0.1/`. Its
+  `SESSION-2026-11-02.md` says how the last session ended and what is still open.
+- **The schema changes only through Alembic.** Never use `create_all` on real data. Rehearse a
+  migration on a copy first and keep a backup. See `docs/DATABASE.md`.
+- **The API description is committed** (`docs/openapi.json`). After changing an endpoint or a
+  schema run `uv run python -m scripts.export_openapi`.
+- **Do not commit or push** unless asked. The working tree has many uncommitted changes.
+
+## Commands
+
+```bash
+uv run alembic upgrade head
+uv run pytest && uv run ruff check . && uv run ruff format --check .
+cd frontend && npm run check          # type check + tests. Not only `npm test`.
+```
+
+## Things that are easy to get wrong
+
+- "Low stock" is `quantity == 0 or quantity < threshold`. Exactly at the threshold is not low.
+  It is written in the backend (property and SQL) and mirrored in `computeStockStatus`.
+  Change them together; both sides' tests share the cases.
+- The detail screen has two modes: `/scan/:ean` (register a purchase) and `/despensa/:ean`
+  (manage). It must wait for the inventory before it shows anything.
+- A stock row exists once per EAN. A product cannot be in two locations.
+- Mercadona lookup exists but is disabled in `app/api/deps.py`.
+- `npm audit fix` can prune dev tools from `node_modules`. Restore with `npm ci`.
+- Files created by an AI session may be owned by `root`. Change them to the project user.

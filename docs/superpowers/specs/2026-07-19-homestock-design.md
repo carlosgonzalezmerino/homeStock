@@ -3,6 +3,14 @@
 **Date:** 2026-07-19
 **Status:** Approved design, pending implementation plan
 
+> **Actualización 2026-11-02.** Esta spec es el diseño original y sigue siendo la referencia del modelo de datos y del pipeline. Ha cambiado:
+> - **Stock bajo** es `cantidad == 0` o `cantidad < umbral`, no `<=`. Ver `Features/v0.1/01-reglas-de-stock.md`.
+> - **Mercadona** está desactivado en `app/api/deps.py`; el resolver usa el catálogo local y `off_products`.
+> - **El esquema se gestiona con Alembic** y la aplicación no crea tablas al arrancar. Ver `docs/DATABASE.md`.
+> - `inventory_items` tiene ahora `drawer`, `frozen_at` y `notes`, y las cantidades admiten decimales.
+> - La **pantalla de lista de la compra** no existe en el frontend; solo la API.
+> - La arquitectura vigente está en `docs/ARCHITECTURE.md`.
+
 ## Context
 
 We want a system to scan groceries by barcode (EAN) and maintain a household

@@ -4,6 +4,8 @@
 **Alcance:** Solo pantalla Despensa (`Pantry.tsx`) y los componentes que toca.  
 **Dashboard:** fuera de scope en esta iteración.
 
+> **Actualización 2026-11-02.** Las tarjetas de la despensa muestran además el cajón, la nota y el icono de producto manual. El `＋` de cada fila es neutro (el verde se reserva a acciones y estados) y la cantidad admite decimales. El estado «bajo» usa `cantidad < umbral`.
+
 ---
 
 ## Objetivo

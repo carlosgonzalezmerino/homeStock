@@ -2,6 +2,8 @@
 
 **Date:** 2026-07-23
 
+> **Actualización 2026-11-02.** **Superada en un punto:** la cámara **ya no arranca sola** al volver al escáner; solo se muestra la confirmación. Además, el alta manual y el alta sin código terminan en la lista de la ubicación elegida, y editar desde la despensa o una alerta vuelve a la pantalla anterior. Ver `Features/v0.1/02` y `03`.
+
 ## Problem
 
 After scanning a barcode and adding (or updating) a product, the app navigates to `/despensa`. The user has to manually go back to the Scan tab and reactivate the camera. This is friction for a batch-scanning workflow.

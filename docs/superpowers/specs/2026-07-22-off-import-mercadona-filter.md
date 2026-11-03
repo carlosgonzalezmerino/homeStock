@@ -3,6 +3,8 @@
 **Fecha:** 2026-07-22
 **Ámbito:** `scripts/off_import.py` y sus tests.
 
+> **Actualización 2026-11-02.** `main` del script aplica ahora las migraciones de Alembic antes de importar, en lugar de `create_all`. Además omite los códigos que empiezan por `00`, comportamiento que esta spec no describe.
+
 ## Objetivo
 
 Modificar el importador de OpenFoodFacts para que, en vez de cargar todo el CSV

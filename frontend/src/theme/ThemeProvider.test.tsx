@@ -40,8 +40,8 @@ afterEach(() => {
 });
 
 describe("ThemeProvider", () => {
-  it("falls back to prefers-color-scheme when localStorage is empty", () => {
-    mockMatchMedia(true);
+  it("defaults to dark when localStorage is empty, even if the system prefers light", () => {
+    mockMatchMedia(false);
     render(
       <ThemeProvider>
         <ThemeProbe />
@@ -62,23 +62,25 @@ describe("ThemeProvider", () => {
     expect(screen.getByTestId("theme").textContent).toBe("dark");
   });
 
-  it("toggle flips theme, updates <html>.dark, and persists", () => {
+  it("toggle flips theme from dark to light, updates <html>.dark, and persists", () => {
     mockMatchMedia(false);
     render(
       <ThemeProvider>
         <ThemeProbe />
       </ThemeProvider>,
     );
-    expect(screen.getByTestId("theme").textContent).toBe("light");
+    expect(screen.getByTestId("theme").textContent).toBe("dark");
     act(() => {
       screen.getByText("toggle").click();
     });
-    expect(screen.getByTestId("theme").textContent).toBe("dark");
-    expect(document.documentElement.classList.contains("dark")).toBe(true);
-    expect(localStorage.getItem("theme")).toBe("dark");
+    expect(screen.getByTestId("theme").textContent).toBe("light");
+    expect(document.documentElement.classList.contains("dark")).toBe(false);
+    expect(localStorage.getItem("theme")).toBe("light");
   });
 
-  it("useTheme throws outside the provider", () => {
+  it("test_useTheme_outsideTheProvider_throwsAnExplanation", () => {
+    // React logs the error it re-throws. It is expected here, so keep it out of the test output.
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
     expect(() => render(<ThemeProbe />)).toThrow(/ThemeProvider/);
   });
 });

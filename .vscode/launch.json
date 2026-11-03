@@ -2,14 +2,22 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "FastAPI",
+      "name": "Backend (FastAPI :8000)",
       "type": "debugpy",
       "request": "launch",
       "module": "uvicorn",
-      "args": ["app.main:app", "--reload", "--port", "8000"],
+      "args": ["app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"],
       "jinja": true,
+      "cwd": "${workspaceFolder}",
       "envFile": "${workspaceFolder}/.env",
       "python": "${workspaceFolder}/.venv/bin/python"
+    },
+    {
+      "name": "Frontend (Vite :5173)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev",
+      "cwd": "${workspaceFolder}/frontend"
     },
     {
       "name": "OFF import",
@@ -22,6 +30,13 @@
       ],
       "cwd": "${workspaceFolder}",
       "python": "${workspaceFolder}/.venv/bin/python"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Backend + Frontend (dev)",
+      "configurations": ["Backend (FastAPI :8000)", "Frontend (Vite :5173)"],
+      "stopAll": true
     }
   ]
 }

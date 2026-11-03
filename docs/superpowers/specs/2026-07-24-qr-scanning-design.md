@@ -3,6 +3,8 @@
 **Date:** 2026-07-24
 **Status:** Approved
 
+> **Actualización 2026-11-02.** El formato real del QR de Mercadona es `/01/<GTIN-14>/…`, no `/code/<EAN>/…` como supone esta spec (corregido en commits posteriores). Un código que no sea un EAN válido ni un QR conocido ya no se abre: se muestra su valor (`Features/v0.1/03`).
+
 ## Context
 
 Some products come with a Mercadona QR code instead of a plain EAN barcode. The QR encodes a URL of the form:

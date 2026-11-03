@@ -11,6 +11,14 @@ router = APIRouter(prefix="/api", tags=["shopping-list"])
 def get_shopping_list(
     service: ShoppingListService = Depends(get_shopping_list_service),
 ) -> list[ShoppingListItemOut]:
+    """Lists what needs to be bought: the items that are low on stock.
+
+    Args:
+        service: The shopping list service.
+
+    Returns:
+        One line per item, with its name, current quantity, threshold and image.
+    """
     return [
         ShoppingListItemOut(
             ean=item.ean,

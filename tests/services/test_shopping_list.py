@@ -33,7 +33,8 @@ def test_shopping_list_excludes_item_at_threshold() -> None:
     create_db_and_tables(engine)
     session = Session(engine)
     session.add(Product(ean="bread", name="Bread", source="manual"))
-    session.add(InventoryItem(ean="bread", quantity=2, threshold=2))  # at threshold, not low
+    # exactly at the threshold: not low
+    session.add(InventoryItem(ean="bread", quantity=2, threshold=2))
     session.commit()
 
     service = ShoppingListService(

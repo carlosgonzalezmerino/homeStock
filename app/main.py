@@ -1,14 +1,20 @@
 from fastapi import FastAPI
 
 from app.api import inventory, products, resolve, shopping_list
-from app.db import create_db_and_tables, get_engine, is_engine_set, set_engine
+from app.db import get_engine, is_engine_set, set_engine
 
 
 def create_app() -> FastAPI:
+    """Builds the FastAPI application with all its routers.
+
+    Returns:
+        The application, ready to be served or tested.
+    """
     app = FastAPI(title="homeStock")
 
     @app.get("/api/health")
     def health() -> dict[str, str]:
+        """Reports that the service is up."""
         return {"status": "ok"}
 
     app.include_router(resolve.router)
@@ -19,10 +25,15 @@ def create_app() -> FastAPI:
 
 
 def _bootstrap() -> FastAPI:
+    """Sets the default engine, unless a test already set one, and builds the app.
+
+    The schema is not created here: run `alembic upgrade head` first.
+
+    Returns:
+        The application.
+    """
     if not is_engine_set():
-        engine = get_engine()
-        set_engine(engine)
-        create_db_and_tables(engine)
+        set_engine(get_engine())
     return create_app()
 
 

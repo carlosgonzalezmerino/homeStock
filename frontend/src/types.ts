@@ -37,6 +37,9 @@ export interface InventoryOut {
   threshold: number;
   unit: string;
   location?: string | null;
+  drawer?: number | null;
+  frozen_at?: string | null;
+  notes?: string | null;
 }
 
 export interface InventoryCreate {
@@ -44,14 +47,20 @@ export interface InventoryCreate {
   quantity: number;
   threshold: number;
   unit?: string;
-  location?: string | null;
+  location?: Location | null;
+  drawer?: number | null;
+  frozen_at?: string | null;
+  notes?: string | null;
 }
 
 export interface InventoryPatch {
   quantity?: number;
   threshold?: number;
   unit?: string;
-  location?: string | null;
+  location?: Location | null;
+  drawer?: number | null;
+  frozen_at?: string | null;
+  notes?: string | null;
 }
 
 export interface InventoryWithProductOut {
