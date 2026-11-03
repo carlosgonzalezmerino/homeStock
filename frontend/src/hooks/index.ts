@@ -12,7 +12,12 @@ export type { ScannerState, UseScannerReturn } from "./useScanner";
 export { useSearchProducts } from "./useSearchProducts";
 export { useDebouncedValue } from "./useDebouncedValue";
 export { useAddedToast } from "./useAddedToast";
-export { useCheckedItems } from "./useCheckedItems";
+export {
+  useAddToShoppingList,
+  useRegisterPurchase,
+  useRemoveFromShoppingList,
+  useUpdateShoppingItem,
+} from "./useShoppingListMutations";
 export { useScanMode } from "./useScanMode";
 export { useBurstScan } from "./useBurstScan";
 export { usePurchaseSession } from "./usePurchaseSession";

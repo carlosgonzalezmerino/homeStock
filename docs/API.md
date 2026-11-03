@@ -246,7 +246,54 @@ Correcting a quantity during the review is a plain `PATCH /api/inventory/{ean}` 
 
 ## Shopping list
 
+The list holds **only what the user puts on it**, taken from the catalogue. A product being
+out of stock never adds it. It is saved data (`shopping_list_items`), one line per product.
+
 ### `GET /api/shopping-list`
 
-The tracked items that are low on stock, as `[{ean, name, quantity, threshold, unit, image_url}]`.
-It is a query, not a stored list, so there is nothing to keep in sync.
+The lines, oldest first, each with the current stock of its product.
+
+```json
+[{ "ean": "8410376003139", "name": "Leche", "brand": "Hacendado", "image_url": null,
+   "quantity": 2, "checked": false, "in_stock": 3, "unit": "units" }]
+```
+
+`quantity` is **how much to buy**. `in_stock` is what the pantry has now, or `null` when the
+product is not tracked there; `unit` comes from the stock row, or is `units`.
+
+### `POST /api/shopping-list`
+
+Puts a catalogue product on the list.
+
+```json
+{ "ean": "8410376003139", "quantity": 2 }
+```
+
+`quantity` is optional (1), above 0, with at most 2 decimals. `201` with the line. If the product
+is **already on the list** the quantity is summed instead and the answer is `200`. `404` with
+`{"ean": ...}` when the code is not in the catalogue, `422` when invalid.
+
+### `PATCH /api/shopping-list/{ean}`
+
+Changes `quantity` and/or `checked` ("picked up"). Neither can be `null`. `200` with the line, `404`
+when the product is not on the list, `422` when invalid.
+
+### `DELETE /api/shopping-list/{ean}`
+
+Takes the product off the list. `204`, or `404`.
+
+### `POST /api/shopping-list/purchase`
+
+Registers every line with `checked = true` as bought, **all or nothing**, in one transaction:
+
+1. A product that is in the pantry gets `quantity += line.quantity`.
+2. One that is not is created there with that quantity, threshold `0`, unit `units` and the
+   pantry as location.
+3. The line is removed from the list.
+
+Unchecked lines are not touched. Every change goes through the stock service, so the
+[diary](#movements) records it as a `purchase` from `shopping_list`. If any line fails, nothing is
+applied, no movement is written and the list stays as it was.
+
+`200` `{"added": 2, "created": 1}`: lines registered, and how many of those were new in the
+pantry. With nothing checked it answers `{"added": 0, "created": 0}` and writes nothing.

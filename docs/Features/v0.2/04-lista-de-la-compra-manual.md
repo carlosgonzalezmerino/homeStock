@@ -1,9 +1,9 @@
 # Spec 04 · Lista de la compra manual
 
 **Sustituye a:** [Spec 01](01-lista-de-la-compra.md) (N-01), que queda reemplazada.
-**Estado:** propuesta. Nada implementado. Pendiente de que la revises (ver [Decisiones](#decisiones)).
+**Estado:** implementada (2026-11-03), con las propuestas L1 a L6 como decisiones. Ver [Verificación](#verificación-2026-11-03).
 **Toca la BD:** **sí**. Tabla nueva, migración con Alembic.
-**Depende de:** nada. Es independiente de v0.3, pero comparten número de migración (ver [Migración](#migración)).
+**Depende de:** nada. Se implementó **después** de la v0.3, así que su migración es la `0005`.
 
 ## Por qué se rehace
 
@@ -65,9 +65,8 @@ Decisiones de modelo, con su motivo:
 
 Una migración nueva que **solo crea** la tabla. No modifica ni borra datos existentes.
 
-- **Número de revisión:** sin fijar. `0003` está citado en [Spec 03](03-recetas.md) y en
-  [v0.3/01](../v0.3/01-registro-de-movimientos.md). La primera spec que se implemente se queda
-  `0003` y las demás se renumeran. Hay que ajustar `down_revision` en consecuencia.
+- **Número de revisión: `0005`** (`down_revision = "0004"`). La v0.3 ya había ocupado `0003` y
+  `0004`. Las recetas ([Spec 03](03-recetas.md)) pasarían a `0006`.
 - Ensayo sobre una copia y copia de seguridad antes, como manda `docs/DATABASE.md`.
 - `downgrade` borra la tabla; los datos de la lista se pierden. Se dice en el docstring.
 - Se actualiza `docs/DATABASE.md` (tabla y fila de migraciones).
@@ -299,3 +298,60 @@ Propuestas mías, para que las confirmes o cambies. Ninguna está tomada.
 
 L3 y L6 están ligadas: elegir servidor para las marcas es elegir depender de la red al marcar. Es
 la decisión que más conviene que mires.
+
+## Verificación (2026-11-03)
+
+**Qué se hizo.** Tabla `shopping_list_items` (migración `0005`); `ShoppingListRepository` y
+`ShoppingListService` reescritos; los cinco endpoints; pantalla `/lista` nueva (buscador del catálogo,
+stepper, marca, quitar, «Añadir al stock»); botón «Añadir a la lista» en el detalle; se eliminan
+`useCheckedItems` y `suggestedPurchase`.
+
+**Decisiones tomadas** (las propuestas de la spec): L1 suma al duplicar · L2 umbral 0 al crear · L3 la
+marca vive en el servidor · L4 un único endpoint de compra · L5 el detalle en modo gestión · L6 la
+marca es optimista y se revierte con aviso si el servidor falla.
+
+**Cómo se comprobó.**
+
+| Comprobación | Resultado |
+|---|---|
+| Backend completo | **325 tests**, verdes; cobertura **98 %**; los cuatro ficheros de la lista al 100 % |
+| Frontend completo | **556 tests**, verdes; cobertura **95,5 %**; `tsc` limpio; `vite build` correcto |
+| «La lista solo tiene lo que añado»: producto a 0 sin añadir **no** aparece, en servicio, API e integración | Tests verdes |
+| Migración `0005` sobre una copia de tu `homestock.db` real (cadena `0002 → 0005`) | La lista nace **vacía** aunque hay 4 productos con stock bajo; `check_movements` OK |
+| Recorrido real contra el servidor (copia): añadir, sumar al repetir, EAN desconocido `404`, `quantity: null` `422`, marcar, comprar | Correcto: stock 4 → 7, historial `purchase` / `shopping_list`, lista vacía después |
+| Mutaciones deliberadas | Ver abajo |
+
+**Todo o nada, probado de verdad.** `purchase` necesitaba una transacción real y los repositorios
+hacían `commit()` cada uno por su cuenta. Se añadió `atomic(session)` en `app/db.py`: dentro del bloque
+los repositorios solo hacen `flush`, y un error revierte stock, historial y lista a la vez. El test
+provoca un fallo en la **segunda** línea y comprueba que ni el stock, ni el historial, ni la lista
+cambian. Tres mutaciones (quitar el `rollback`; dos repositorios que vuelven a hacer `commit`) hacen
+fallar tests.
+
+**Desviaciones.**
+
+- **Las mutaciones del frontend están en `useShoppingListMutations.ts`**, no en `useMutations.ts`,
+  que ya era largo y mezclaba otro dominio.
+- **El stepper es editable** (admite 0,5) y bajar de 1 quita la línea, como pedía la spec.
+- **La hoja del modo Gastar ya no dice «ya está en la lista»** (ver
+  [v0.3/03](../v0.3/03-modo-consumir.md)): con esta spec habría sido falso.
+
+**Bugs encontrados al probarlo.**
+
+- El aviso «No se pudo guardar» de una línea se leía en el componente padre, que **no** tiene esa
+  mutación (cada fila tiene la suya): nunca habría salido. Se movió a la fila.
+- `onSettled` devolvía la promesa de recargar la lista, y TanStack Query v5 no publica el estado de error
+  hasta que terminan los callbacks: con mala cobertura, la casilla revertía pero el aviso esperaba a la
+  recarga. Ahora la recarga se lanza sin esperarla.
+- Un test mío comprobaba `inventoryReads >= 0` (siempre verdadero); se sustituyó por una comprobación
+  real de que la caché del inventario queda obsoleta tras comprar.
+
+**No verificado.**
+
+- **MariaDB.** `0005` y la atomicidad solo se ensayaron en SQLite. `begin`/`rollback` son estándar,
+  pero hay que ensayar la migración sobre un volcado restaurado antes de desplegar.
+- **A 380 px y en el móvil.** No hay navegador utilizable en esta sesión.
+- **L3/L6 en la tienda sin cobertura.** Marcar depende de la red; la reversión con aviso lo cubre a
+  medias, como la propia spec advertía. Si pasa a menudo, la alternativa es volver a `localStorage`.
+- **Datos que se pierden.** La lista antigua era derivada, así que no hay nada que migrar; pero
+  `localStorage["shoppingChecked"]` de cada navegador queda huérfano (inofensivo).

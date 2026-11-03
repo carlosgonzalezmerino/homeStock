@@ -93,6 +93,9 @@ MovementService ──► MovementRepository + InventoryService   (list, undo)
 ReviewService ──► the three repositories, read only   (what the weekly review asks about)
 ```
 
+- **`atomic(session)`** (`app/db.py`) groups writes so they succeed or fail together. Repositories call
+  `commit_unless_atomic` instead of `session.commit()`, so inside the block they only flush and an
+  error rolls back the stock, the diary and the list as one. `ShoppingListService.purchase` uses it.
 - `MovementContext(reason, source, undoes_id)` travels with a change. The router takes `reason`
   out of the `PATCH` body before the fields reach the repository, because it is not a column.
 - **Undo writes a compensating movement** and never deletes. Undoing the `initial` movement of a
@@ -128,7 +131,7 @@ React Router 6. The full structure is in [`frontend/README.md`](../frontend/READ
 | `/` | Dashboard | Totals and the products that are low on stock. Each alert opens its product. |
 | `/despensa` | Pantry | Pantry and freezer tabs, search, inline quantity buttons. The freezer tab shows how long ago each item was frozen and can sort by that age. |
 | `/despensa/:ean` | Product detail, `manage` mode | Edit a product that is in the pantry. |
-| `/lista` | Shopping list | What is low on stock, with the amount to buy. Check items off while shopping, then register the batch in one go. |
+| `/lista` | Shopping list | What the user put on it, from the catalogue search. Amount to buy, how much is at home, a mark for what is picked up, and one button to register the batch. |
 | `/scan` | Scan | Camera, mode selector (**Detalle**, **Compra**, **Gastar**), typed code, link to "Añadir sin código". See [the scan modes](#the-scan-modes). |
 | `/scan/revisar` | Review purchase | What a shopping session added, what is new, and the codes nobody knew. |
 | `/repaso` | Weekly review | One card at a time: is the registered stock still true? Opened from a card on the dashboard. |
@@ -160,11 +163,11 @@ that is already tracked is never shown as new.
 
 | State | Where | Persisted |
 |---|---|---|
-| Inventory, products, resolution | TanStack Query | No. Writes invalidate `["inventory"]` and `["shopping-list"]`. |
+| Inventory, products, resolution, shopping list | TanStack Query | No. Stock writes invalidate `["inventory"]`, `["shopping-list"]` and `["review"]`. |
 | Active location (pantry or freezer) | `ActiveLocationProvider` | `localStorage["activeLocation"]`. Selects the tab and preselects the location when adding. |
 | Theme | `ThemeProvider` | `localStorage["theme"]` |
 | Scanner diagnostics | `utils/diagnostics.ts` | `localStorage["scannerDiagnostics"]` |
-| Shopping list items picked up | `useCheckedItems` | `localStorage["shoppingChecked"]`. EANs no longer on the list are dropped on load |
+| Shopping list, including what is picked up | the server (`shopping_list_items`) | Yes, in the database, so two phones agree. Marking and changing an amount are **optimistic**: they show at once and are undone, with a message, if the server refuses |
 
 Every `localStorage` access is wrapped: if storage is blocked the app keeps working in memory and
 logs a warning.

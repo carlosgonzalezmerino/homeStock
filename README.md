@@ -20,7 +20,7 @@ left in the pantry and in the freezer, and see what is running low.
 | Freezer | A freezer item can carry a drawer (1 to 4) and the date it was frozen. The pantry list shows how long ago, and flags anything past 6 months. |
 | Notes | Free text per stock row, up to 500 characters. |
 | Alerts | The dashboard lists what is low on stock. Each alert opens the product. |
-| Shopping list | `/lista` lists what is low on stock, with how much to buy. Check items off while shopping and register the whole batch in one go. |
+| Shopping list | `/lista` holds what **you** add, searching the catalogue. Set how much to buy, see how much is at home, check items off while shopping and register the whole batch in one go (all or nothing). Being out of stock never adds anything. |
 | Products without a barcode | "Añadir sin código" creates a product with a generated `CUSTOM-` code. |
 
 ### When is a product "low"?
@@ -32,7 +32,7 @@ left in the pantry and in the freezer, and see what is running low.
 | 2 | 2 | no, exactly at the threshold is not low |
 | 0,5 | 0 | no, a threshold of 0 means "alert only when it runs out" |
 
-The same rule is used by the stock list, the alerts and the shopping list.
+The same rule is used by the stock list and the alerts. The shopping list does not use it: it holds only what you add.
 
 ### Known gaps
 
@@ -110,6 +110,7 @@ DATABASE_URL=sqlite:///homestock.db uv run alembic upgrade head
 | `0002` | Adds `drawer`, `frozen_at` and `notes` to `inventory_items`. Nullable columns, no data changed |
 | `0003` | Creates `stock_movements` (the diary) and backfills one `initial` movement per item with stock |
 | `0004` | Adds the nullable `checked_at` to `inventory_items`, for the weekly review |
+| `0005` | Creates `shopping_list_items`, the saved shopping list. It starts empty |
 
 ## Import the OpenFoodFacts subset
 

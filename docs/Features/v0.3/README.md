@@ -75,12 +75,12 @@ Las mismas de la v0.1 y la v0.2, de [`DevelopStyle.md`](../../../../Trabajo/Desa
 | La cámara solo funciona en contexto seguro (HTTPS) | Spec 02 alarga mucho la sesión de cámara: hay que probarla en el iPhone de verdad, no solo en el portátil |
 | Después de tocar un endpoint o un esquema, `export_openapi` | Spec 01, que añade endpoints y cambia `InventoryPatch` |
 
-## Choque de numeración de migraciones
+## Numeración de migraciones
 
-[`v0.2/03-recetas.md`](../v0.2/03-recetas.md) reservaba la revisión `0003`. Como las recetas siguen
-sin implementarse y esto sí va a hacerse, **`0003` es el registro de movimientos, `0004` el repaso
-semanal**, y las recetas pasarían a `0005`. Hay que corregir esa línea de la spec de recetas cuando
-se retome.
+`0003` es el registro de movimientos y `0004` el repaso semanal (esta iteración). `0005` es la tabla
+de la lista de la compra manual ([v0.2/04](../v0.2/04-lista-de-la-compra-manual.md)), ya
+implementada. Las recetas ([`v0.2/03-recetas.md`](../v0.2/03-recetas.md)), que citan `0003`, pasarían
+a `0006` cuando se retomen.
 
 ## Pendientes de antes que siguen abiertos
 

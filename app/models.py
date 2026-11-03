@@ -86,6 +86,23 @@ class StockMovement(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_now)
 
 
+class ShoppingListItem(SQLModel, table=True):
+    """A product on the shopping list: what to buy, how much, and if it is picked up.
+
+    The list holds only what the user adds. Being out of stock never puts a product
+    here.
+    """
+
+    __tablename__ = "shopping_list_items"
+
+    id: int | None = Field(default=None, primary_key=True)
+    ean: str = Field(foreign_key="products.ean", unique=True, index=True)
+    quantity: float
+    checked: bool = False
+    created_at: datetime = Field(default_factory=_now)
+    updated_at: datetime = Field(default_factory=_now)
+
+
 class OffProduct(SQLModel, table=True):
     """A product imported from the OpenFoodFacts dump, rebuilt by the import script."""
 

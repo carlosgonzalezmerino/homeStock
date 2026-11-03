@@ -869,6 +869,25 @@
         "title": "ProductPatch",
         "type": "object"
       },
+      "PurchaseSummaryOut": {
+        "description": "What registering the picked-up lines did.",
+        "properties": {
+          "added": {
+            "title": "Added",
+            "type": "integer"
+          },
+          "created": {
+            "title": "Created",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "added",
+          "created"
+        ],
+        "title": "PurchaseSummaryOut",
+        "type": "object"
+      },
       "ReviewCandidateOut": {
         "description": "A product the weekly review asks about.",
         "properties": {
@@ -1098,9 +1117,44 @@
         "title": "ScanResultOut",
         "type": "object"
       },
+      "ShoppingListItemCreate": {
+        "description": "A product to put on the shopping list. Adding one already there sums it.",
+        "properties": {
+          "ean": {
+            "title": "Ean",
+            "type": "string"
+          },
+          "quantity": {
+            "default": 1.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Quantity",
+            "type": "number"
+          }
+        },
+        "required": [
+          "ean"
+        ],
+        "title": "ShoppingListItemCreate",
+        "type": "object"
+      },
       "ShoppingListItemOut": {
         "description": "One line of the shopping list.",
         "properties": {
+          "brand": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand"
+          },
+          "checked": {
+            "title": "Checked",
+            "type": "boolean"
+          },
           "ean": {
             "title": "Ean",
             "type": "string"
@@ -1116,16 +1170,23 @@
             ],
             "title": "Image Url"
           },
+          "in_stock": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "In Stock"
+          },
           "name": {
             "title": "Name",
             "type": "string"
           },
           "quantity": {
             "title": "Quantity",
-            "type": "number"
-          },
-          "threshold": {
-            "title": "Threshold",
             "type": "number"
           },
           "unit": {
@@ -1137,10 +1198,40 @@
           "ean",
           "name",
           "quantity",
-          "threshold",
+          "checked",
           "unit"
         ],
         "title": "ShoppingListItemOut",
+        "type": "object"
+      },
+      "ShoppingListItemPatch": {
+        "description": "A partial edit of a line of the shopping list. Neither field can be cleared.",
+        "properties": {
+          "checked": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          }
+        },
+        "title": "ShoppingListItemPatch",
         "type": "object"
       },
       "ValidationError": {
@@ -1955,7 +2046,7 @@
     },
     "/api/shopping-list": {
       "get": {
-        "description": "Lists what needs to be bought: the items that are low on stock.\n\nArgs:\n    service: The shopping list service.\n\nReturns:\n    One line per item, with its name, current quantity, threshold and image.",
+        "description": "Lists what the user has put on the list, with the stock of each product.\n\nBeing out of stock never puts a product here: the list holds only what was added.\n\nArgs:\n    service: The shopping list service.\n\nReturns:\n    One line per product, oldest first.",
         "operationId": "get_shopping_list_api_shopping_list_get",
         "responses": {
           "200": {
@@ -1974,6 +2065,155 @@
           }
         },
         "summary": "Get Shopping List",
+        "tags": [
+          "shopping-list"
+        ]
+      },
+      "post": {
+        "description": "Puts a catalogue product on the list. If it is already there, sums the quantity.\n\nArgs:\n    payload: The product and how much to buy.\n    response: Used to answer 201 for a new line and 200 for a summed one.\n    service: The shopping list service.\n\nReturns:\n    The line.\n\nRaises:\n    HTTPException: 404 when the product is not in the catalogue.",
+        "operationId": "add_to_shopping_list_api_shopping_list_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShoppingListItemCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoppingListItemOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add To Shopping List",
+        "tags": [
+          "shopping-list"
+        ]
+      }
+    },
+    "/api/shopping-list/purchase": {
+      "post": {
+        "description": "Puts every picked-up line into the stock and takes it off the list.\n\nAll or nothing. A product that was not in the pantry is created there.\n\nArgs:\n    service: The shopping list service.\n\nReturns:\n    How many lines were registered and how many of those were new in the pantry.",
+        "operationId": "register_purchase_api_shopping_list_purchase_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseSummaryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Register Purchase",
+        "tags": [
+          "shopping-list"
+        ]
+      }
+    },
+    "/api/shopping-list/{ean}": {
+      "delete": {
+        "description": "Takes a product off the list.\n\nArgs:\n    ean: The product's barcode.\n    service: The shopping list service.\n\nReturns:\n    An empty 204 response.\n\nRaises:\n    HTTPException: 404 when the product is not on the list.",
+        "operationId": "remove_from_shopping_list_api_shopping_list__ean__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ean",
+            "required": true,
+            "schema": {
+              "title": "Ean",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove From Shopping List",
+        "tags": [
+          "shopping-list"
+        ]
+      },
+      "patch": {
+        "description": "Changes the quantity to buy or the picked-up mark of a line.\n\nArgs:\n    ean: The product's barcode.\n    payload: The fields to change.\n    service: The shopping list service.\n\nReturns:\n    The updated line.\n\nRaises:\n    HTTPException: 404 when the product is not on the list.",
+        "operationId": "patch_shopping_list_item_api_shopping_list__ean__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ean",
+            "required": true,
+            "schema": {
+              "title": "Ean",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShoppingListItemPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoppingListItemOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Shopping List Item",
         "tags": [
           "shopping-list"
         ]

@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import type { SheetState } from "@/hooks/useBurstScan";
 import { describeScan } from "@/utils/scanMessages";
 import { Button } from "./Button";
@@ -64,11 +63,6 @@ function ResultContent({ result, onUndo }: ResultContentProps) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-body text-on-surface">{text.title}</p>
         <p className="text-body-sm text-on-surface-variant">{text.detail}</p>
-        {text.linksToShoppingList && (
-          <Link to="/lista" className="text-body-sm text-primary underline">
-            Ver la lista
-          </Link>
-        )}
       </div>
       {result.movement_id != null && (
         <Button variant="ghost" size="sm" onClick={onUndo}>

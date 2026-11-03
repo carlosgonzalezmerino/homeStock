@@ -9,6 +9,7 @@ from app.repositories.inventory import InventoryRepository
 from app.repositories.movements import MovementRepository
 from app.repositories.off import OffProductRepository
 from app.repositories.products import ProductRepository
+from app.repositories.shopping_list import ShoppingListRepository
 from app.services.inventory import InventoryService
 from app.services.movements import MovementService
 from app.services.resolver import ProductResolver
@@ -181,17 +182,33 @@ def get_review_service(
     return ReviewService(inventory, products, movements)
 
 
+def get_shopping_list_repo(
+    session: Session = Depends(get_session),
+) -> ShoppingListRepository:
+    """Provides the shopping list repository for one request.
+
+    Args:
+        session: The request's database session.
+
+    Returns:
+        A repository over that session.
+    """
+    return ShoppingListRepository(session)
+
+
 def get_shopping_list_service(
-    inventory: InventoryRepository = Depends(get_inventory_repo),
+    shopping: ShoppingListRepository = Depends(get_shopping_list_repo),
     products: ProductRepository = Depends(get_product_repo),
+    inventory: InventoryService = Depends(get_inventory_service),
 ) -> ShoppingListService:
     """Provides the shopping list service for one request.
 
     Args:
-        inventory: Access to the inventory rows.
+        shopping: Access to the saved list.
         products: Access to the catalogue.
+        inventory: The inventory service, which also writes the stock diary.
 
     Returns:
         The service.
     """
-    return ShoppingListService(inventory, products)
+    return ShoppingListService(shopping, products, inventory)

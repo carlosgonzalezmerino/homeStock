@@ -65,7 +65,8 @@ const shoppingItem: ShoppingListItemOut = {
   ean: "9876543210987",
   name: "Pan integral",
   quantity: 1,
-  threshold: 2,
+  checked: false,
+  in_stock: null,
   unit: "units",
 };
 

@@ -9,6 +9,7 @@ from app.constants import (
     FREEZER_DRAWER_MIN,
     MAX_QUANTITY_DECIMALS,
     NOTES_MAX_LENGTH,
+    SHOPPING_DEFAULT_QUANTITY,
 )
 
 Location = Literal["pantry", "freezer"]
@@ -196,10 +197,40 @@ class ShoppingListItemOut(BaseModel):
 
     ean: str
     name: str
-    quantity: float
-    threshold: float
-    unit: str
+    brand: str | None = None
     image_url: str | None = None
+    quantity: float
+    checked: bool
+    in_stock: float | None = None
+    unit: str
+
+
+class ShoppingListItemCreate(BaseModel):
+    """A product to put on the shopping list. Adding one already there sums it."""
+
+    ean: str
+    quantity: float = Field(
+        default=SHOPPING_DEFAULT_QUANTITY, gt=0, allow_inf_nan=False
+    )
+
+    _check_decimals = field_validator("quantity")(check_max_decimals)
+
+
+class ShoppingListItemPatch(BaseModel):
+    """A partial edit of a line of the shopping list. Neither field can be cleared."""
+
+    quantity: float | None = Field(default=None, gt=0, allow_inf_nan=False)
+    checked: bool | None = None
+
+    _reject_null_required = field_validator("quantity", "checked")(reject_null)
+    _check_decimals = field_validator("quantity")(check_max_decimals)
+
+
+class PurchaseSummaryOut(BaseModel):
+    """What registering the picked-up lines did."""
+
+    added: int
+    created: int
 
 
 class EanNotFound(BaseModel):

@@ -60,6 +60,22 @@ Only `InventoryService` writes it, so every entry point (the app, a scan, a futu
 inherits the diary. A crash between writing the stock row and writing its movement leaves the
 diary one row behind; that is what the check script finds.
 
+### `shopping_list_items`: the shopping list
+
+Added in `0005`. One row per product the user wants to buy. It is saved data: before `0005` the
+list was a query over the low stock, and that is no longer the case.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | integer, primary key | |
+| `ean` | text, required | Foreign key to `products` (the catalogue, **not** the stock row, so a product that was never bought can be on the list), **unique**, indexed |
+| `quantity` | float, required | How much to buy. `> 0`, at most 2 decimals |
+| `checked` | boolean, required | Picked up while shopping. `false` by default |
+| `created_at`, `updated_at` | datetime | |
+
+Registering a purchase deletes the lines it covers; the stock gets the quantity through the stock
+service, which also writes the diary.
+
 ### `off_products`: imported OpenFoodFacts subset
 
 Same descriptive and nutrition columns as `products`, with `ean` as the indexed primary key.
@@ -77,6 +93,8 @@ Created by Alembic. Holds the revision the database is at.
 | `0002` | `0002_freezer_fields.py` | Adds `drawer`, `frozen_at` and `notes`. Nullable. Nothing is backfilled, so a date is never invented for rows that existed before |
 | `0003` | `0003_stock_movements.py` | Creates `stock_movements` and **backfills the past**: one `initial` movement per item with stock, dated like the item (`source` `migration`). The downgrade drops the table and with it the whole history |
 | `0004` | `0004_inventory_checked_at.py` | Adds the nullable `checked_at` to `inventory_items`. Nothing is backfilled |
+
+| `0005` | `0005_shopping_list_items.py` | Creates `shopping_list_items`. Nothing is backfilled: the list **starts empty**, it is never filled from the low stock. The downgrade drops the table and the list with it |
 
 `app.migrations.head_revision()` returns the newest revision, so tests never hard-code it.
 

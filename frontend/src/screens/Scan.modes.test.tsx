@@ -71,7 +71,6 @@ function renderScan() {
             <Route path="/scan" element={<Scan />} />
             <Route path="/scan/:ean" element={<div>ProductDetail</div>} />
             <Route path="/scan/revisar" element={<div>ReviewScreen</div>} />
-            <Route path="/lista" element={<div>ShoppingScreen</div>} />
           </Routes>
         </MemoryRouter>
       </ActiveLocationProvider>
@@ -276,14 +275,14 @@ describe("Scan — consume mode", () => {
     expect(await screen.findByText("−1 · quedan 2 units")).toBeInTheDocument();
   });
 
-  it("test_scan_consumeToZero_saysItIsOnTheShoppingListAndLinksToIt", async () => {
+  it("test_scan_consumeToZero_saysItRanOutWithoutClaimingItIsOnTheList", async () => {
     mockScan(answer({ mode: "consume", quantity_after: 0 }));
     renderScan();
     pickMode("Gastar");
     await detect(VALID_EAN);
-    expect(await screen.findByText("Se acabó · ya está en la lista de la compra")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("link", { name: "Ver la lista" }));
-    expect(await screen.findByText("ShoppingScreen")).toBeInTheDocument();
+    expect(await screen.findByText("Se acabó")).toBeInTheDocument();
+    expect(screen.queryByText(/lista de la compra/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
   it("test_scan_consumeOfAProductNotInThePantry_warnsAndChangesNothing", async () => {

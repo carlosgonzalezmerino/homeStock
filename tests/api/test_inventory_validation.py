@@ -142,8 +142,10 @@ def test_list_zero_threshold_item_is_low_only_when_empty(client, seed_product) -
     assert flags == {"Hamburguesa": True, "Pan": False}
 
 
-def test_shopping_list_includes_empty_zero_threshold_item(client, seed_product) -> None:
+def test_empty_zero_threshold_item_is_low_but_not_on_the_shopping_list(
+    client, seed_product
+) -> None:
     seed_product(ean="1", name="Hamburguesa")
     client.post("/api/inventory", json={"ean": "1", "quantity": 0, "threshold": 0})
-    names = [row["name"] for row in client.get("/api/shopping-list").json()]
-    assert names == ["Hamburguesa"]
+    assert client.get("/api/inventory").json()[0]["low"] is True
+    assert client.get("/api/shopping-list").json() == []

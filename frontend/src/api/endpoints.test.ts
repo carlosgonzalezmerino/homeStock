@@ -8,7 +8,13 @@ import {
   deleteInventory,
 } from "@/api/inventory";
 import { createProduct } from "@/api/products";
-import { getShoppingList } from "@/api/shoppingList";
+import {
+  addToShoppingList,
+  getShoppingList,
+  registerPurchase,
+  removeFromShoppingList,
+  updateShoppingItem,
+} from "@/api/shoppingList";
 import { postScan, undoMovement } from "@/api/scan";
 import { confirmReview, getReview } from "@/api/review";
 
@@ -103,5 +109,26 @@ describe("endpoint modules", () => {
   it("test_confirmReview_postsToTheConfirmPathAndEncodesTheEan", async () => {
     await confirmReview("a/b");
     expect(post).toHaveBeenCalledWith("/review/a%2Fb/confirm");
+  });
+
+  it("test_addToShoppingList_postsTheProductToTheList", async () => {
+    await addToShoppingList({ ean: "1", quantity: 2 });
+    expect(post).toHaveBeenCalledWith("/shopping-list", { ean: "1", quantity: 2 });
+  });
+
+  it("test_updateShoppingItem_patchesTheLineAndEncodesTheEan", async () => {
+    await updateShoppingItem("a/b", { checked: true });
+    expect(patch).toHaveBeenCalledWith("/shopping-list/a%2Fb", { checked: true });
+  });
+
+  it("test_removeFromShoppingList_deletesTheLine", async () => {
+    await removeFromShoppingList("1");
+    expect(del).toHaveBeenCalledWith("/shopping-list/1");
+  });
+
+  it("test_registerPurchase_postsToThePurchasePath", async () => {
+    post.mockResolvedValue({ added: 2, created: 1 } as never);
+    expect(await registerPurchase()).toEqual({ added: 2, created: 1 });
+    expect(post).toHaveBeenCalledWith("/shopping-list/purchase");
   });
 });

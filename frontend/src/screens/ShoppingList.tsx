@@ -1,187 +1,264 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useCheckedItems, usePatchInventory, useShoppingList } from "@/hooks";
-import { Button, Card, EmptyState, ErrorState, ProductThumbnail, Spinner, StatusToast } from "@/components";
-import type { ShoppingListItemOut } from "@/types";
-import { formatQuantity, roundQuantity } from "@/utils/format";
-import { sortByChecked, suggestedPurchase } from "@/utils/shopping";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  useAddToShoppingList,
+  useDebouncedValue,
+  useRegisterPurchase,
+  useRemoveFromShoppingList,
+  useSearchProducts,
+  useShoppingList,
+  useUpdateShoppingItem,
+} from "@/hooks";
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  INPUT_CLASS,
+  ProductThumbnail,
+  QuantityStepper,
+  Spinner,
+  StatusToast,
+} from "@/components";
+import type { ProductOut, ShoppingListItemOut } from "@/types";
+import { formatQuantity } from "@/utils/format";
+import { sortByChecked } from "@/utils/shopping";
 
-/** Message shown when the shopping list has no items. */
-const EMPTY_LIST_MESSAGE = "No falta nada";
-/** Message shown briefly after a successful registration. */
+/** Shown when the list has nothing on it. It no longer means "nothing is missing". */
+const EMPTY_LIST_MESSAGE = "Tu lista está vacía. Busca un producto para añadirlo";
+/** Shown after a successful registration. */
 const REGISTERED_MESSAGE = "Compra añadida";
+/** Shown when the catalogue search finds nothing. */
+const NO_RESULTS_MESSAGE = "Nada en tu catálogo con ese nombre";
+/** Shown when a change could not be saved and was undone on screen. */
+const UPDATE_ERROR_MESSAGE = "No se pudo guardar el cambio. Se ha deshecho.";
+/** Shown when the purchase could not be registered. */
+const PURCHASE_ERROR_MESSAGE = "No se pudo añadir la compra. La lista sigue como estaba.";
+/** Quiet period before the catalogue is searched. */
+const SEARCH_DEBOUNCE_MS = 300;
 
 /**
- * Registers the picked-up items as a stock increase, one `PATCH` at a time.
+ * Shopping list: only what the user adds, taken from the catalogue.
  *
- * @returns A function that registers a batch of items and the EANs it could not save, and
- *   whether a registration is in progress.
- */
-function useRegisterPurchases() {
-  const patch = usePatchInventory();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  async function register(items: ShoppingListItemOut[]): Promise<string[]> {
-    setIsSubmitting(true);
-    const failedEans: string[] = [];
-    for (const item of items) {
-      const nextQuantity = roundQuantity(item.quantity + suggestedPurchase(item.quantity, item.threshold));
-      try {
-        await patch.mutateAsync({
-          ean: item.ean,
-          body: { quantity: nextQuantity, reason: "purchase" },
-          source: "shopping_list",
-        });
-      } catch {
-        failedEans.push(item.ean);
-      }
-    }
-    setIsSubmitting(false);
-    return failedEans;
-  }
-
-  return { register, isSubmitting };
-}
-
-/**
- * State and actions of the shopping list screen: the checked items, the registration flow and
- * its outcome.
+ * Marking a line or changing its amount shows at once and is undone if the server refuses.
+ * "Añadir al stock" puts every picked-up line into the pantry in one go, all or nothing.
  *
- * @param items - The items currently on the shopping list.
- * @param loadedEans - The EANs of the loaded list, or `undefined` while it is still loading.
- * @returns Everything the screen needs to render and to register a purchase.
- */
-function useShoppingListPage(items: ShoppingListItemOut[], loadedEans: readonly string[] | undefined) {
-  const { checked, toggle, clear } = useCheckedItems(loadedEans);
-  const { register, isSubmitting } = useRegisterPurchases();
-  const [failedCount, setFailedCount] = useState(0);
-  const [justRegistered, setJustRegistered] = useState(false);
-
-  const orderedItems = useMemo(() => sortByChecked(items, checked), [items, checked]);
-  const checkedItems = items.filter((item) => checked.has(item.ean));
-
-  async function handleRegister() {
-    setJustRegistered(false);
-    const failedEans = await register(checkedItems);
-    const savedEans = checkedItems.filter((item) => !failedEans.includes(item.ean)).map((item) => item.ean);
-    clear(savedEans);
-    setFailedCount(failedEans.length);
-    setJustRegistered(failedEans.length === 0);
-  }
-
-  return { orderedItems, checked, toggle, checkedCount: checkedItems.length, isSubmitting, failedCount, justRegistered, handleRegister };
-}
-
-/**
- * Shopping list screen: what is low on stock, with the amount to buy of each item.
- *
- * Checking an item moves it to the end of the list. "Añadir al stock" registers every checked
- * item as a purchase in one go; items that fail to save stay checked so nothing is lost.
- *
- * @returns The shopping list, or a loading or error state while it loads.
+ * @returns The search box, the lines and the purchase bar, or a loading or error state.
  */
 export function ShoppingList() {
   const { data, isLoading, isError, refetch } = useShoppingList();
-  const items = data ?? [];
-  const loadedEans = useMemo(() => data?.map((item) => item.ean), [data]);
-  const page = useShoppingListPage(items, loadedEans);
+  const lines = useMemo(() => sortByChecked(data ?? []), [data]);
 
   if (isLoading) return <Spinner />;
   if (isError) return <ErrorState message="Error al cargar" onRetry={refetch} />;
 
   return (
     <div className="flex flex-col gap-6 pt-6">
-      {page.justRegistered && <StatusToast message={REGISTERED_MESSAGE} />}
-      {items.length === 0 ? (
-        <EmptyState message={EMPTY_LIST_MESSAGE} />
-      ) : (
-        <>
-          <div className="flex flex-col gap-3">
-            {page.orderedItems.map((item) => (
-              <ShoppingListRow key={item.ean} item={item} isChecked={page.checked.has(item.ean)} onToggle={() => page.toggle(item.ean)} />
-            ))}
-          </div>
-          <RegisterBar
-            checkedCount={page.checkedCount}
-            isSubmitting={page.isSubmitting}
-            failedCount={page.failedCount}
-            onRegister={page.handleRegister}
-          />
-        </>
+      <CatalogSearch />
+      {lines.length === 0 ? <EmptyState message={EMPTY_LIST_MESSAGE} /> : <LinesList lines={lines} />}
+      <PurchaseBar pickedUp={lines.filter((line) => line.checked).length} />
+    </div>
+  );
+}
+
+/**
+ * Search box over the catalogue. Choosing a result puts that product on the list.
+ *
+ * @returns The input and, under it, the matching products.
+ */
+function CatalogSearch() {
+  const [query, setQuery] = useState("");
+  const debounced = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS);
+  const { data: results = [], isFetched } = useSearchProducts(debounced);
+  const add = useAddToShoppingList();
+
+  function choose(product: ProductOut) {
+    add.mutate({ ean: product.ean });
+    setQuery("");
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <input
+        role="searchbox"
+        type="search"
+        placeholder="Añadir a la lista…"
+        aria-label="Añadir a la lista"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        className={INPUT_CLASS}
+      />
+      {debounced === query.trim() && debounced.length > 0 && (
+        <SearchResults results={results} isFetched={isFetched} onChoose={choose} />
       )}
     </div>
   );
 }
 
-/** Props accepted by {@link ShoppingListRow}. */
-interface ShoppingListRowProps {
-  item: ShoppingListItemOut;
-  isChecked: boolean;
-  onToggle: () => void;
+/** Props accepted by {@link SearchResults}. */
+interface SearchResultsProps {
+  results: ProductOut[];
+  isFetched: boolean;
+  onChoose: (product: ProductOut) => void;
 }
 
 /**
- * One line of the shopping list: thumbnail, name, how much is left and how much to buy, and a
- * checkbox for picking it up.
+ * The products that match the search, or a message when none does.
  *
- * @param props - The item, whether it is checked and the toggle callback.
- * @returns A card with the item's details and an inline checkbox.
+ * @param props - The matches, whether the search has finished and the choose callback.
+ * @returns A list of buttons, or the "nothing found" message with a way to create a product.
  */
-function ShoppingListRow({ item, isChecked, onToggle }: ShoppingListRowProps) {
+function SearchResults({ results, isFetched, onChoose }: SearchResultsProps) {
+  if (!isFetched) return null;
+  if (results.length === 0) {
+    return (
+      <div className="flex flex-col gap-2 text-body-sm text-on-surface-variant">
+        <p>{NO_RESULTS_MESSAGE}</p>
+        <Link to="/custom-entry" className="text-primary underline">
+          Crear un producto
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <ul className="flex flex-col gap-2">
+      {results.map((product) => (
+        <li key={product.ean}>
+          <button
+            type="button"
+            onClick={() => onChoose(product)}
+            className="flex w-full items-center gap-3 rounded-lg bg-surface-container p-3 text-left"
+          >
+            <ProductThumbnail imageUrl={product.image_url} alt={product.name} placeholderIcon="grocery" sizeClass="h-10 w-10" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-body text-on-surface">{product.name}</span>
+              {product.brand && <span className="block truncate text-body-sm text-on-surface-variant">{product.brand}</span>}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Props accepted by {@link LinesList}. */
+interface LinesListProps {
+  lines: ShoppingListItemOut[];
+}
+
+/**
+ * The lines of the list.
+ *
+ * @param props - The lines, already ordered.
+ * @returns One card per line.
+ */
+function LinesList({ lines }: LinesListProps) {
+  return (
+    <div className="flex flex-col gap-3">
+      {lines.map((line) => (
+        <ShoppingRow key={line.ean} line={line} />
+      ))}
+    </div>
+  );
+}
+
+/** Props accepted by {@link ShoppingRow}. */
+interface ShoppingRowProps {
+  line: ShoppingListItemOut;
+}
+
+/**
+ * One line: the picked-up box, the product, how much is at home, the amount to buy, and a way to remove it.
+ *
+ * Taking the amount below 1 removes the line, as the "−" at 1 would suggest. If the server
+ * refuses a change, the line goes back to how it was and says so under itself.
+ *
+ * @param props - The line.
+ * @returns A card.
+ */
+function ShoppingRow({ line }: ShoppingRowProps) {
   const navigate = useNavigate();
-  const suggested = suggestedPurchase(item.quantity, item.threshold);
-  const openDetail = () => navigate(`/despensa/${encodeURIComponent(item.ean)}`);
-  const nameClass = isChecked ? "truncate text-body text-on-surface-variant line-through" : "truncate text-body text-on-surface";
+  const update = useUpdateShoppingItem();
+  const remove = useRemoveFromShoppingList();
+  const openDetail = () => navigate(`/despensa/${encodeURIComponent(line.ean)}`);
+  const nameClass = line.checked ? "truncate text-body text-on-surface-variant line-through" : "truncate text-body text-on-surface";
+
+  function changeQuantity(next: number) {
+    if (next <= 0) remove.mutate(line.ean);
+    else update.mutate({ ean: line.ean, body: { quantity: next } });
+  }
 
   return (
     <Card dense>
       <div className="flex items-center gap-3">
-        <button type="button" onClick={openDetail} aria-label={item.name} className="shrink-0 rounded-sm">
-          <ProductThumbnail imageUrl={item.image_url} alt={item.name} placeholderIcon="grocery" sizeClass="h-11 w-11" />
-        </button>
-        <button type="button" onClick={openDetail} className="min-w-0 flex-1 text-left">
-          <p className={nameClass}>{item.name}</p>
-          <p className="truncate text-body-sm text-on-surface-variant">
-            {`Quedan ${formatQuantity(item.quantity)} de ${formatQuantity(item.threshold)} · comprar ${formatQuantity(suggested)}`}
-          </p>
-        </button>
         <input
           type="checkbox"
-          aria-label={item.name}
-          checked={isChecked}
-          onChange={onToggle}
+          aria-label={line.name}
+          checked={line.checked}
+          onChange={() => update.mutate({ ean: line.ean, body: { checked: !line.checked } })}
           className="h-6 w-6 shrink-0 accent-primary"
         />
+        <button type="button" onClick={openDetail} aria-label={`Abrir ${line.name}`} className="shrink-0 rounded-sm">
+          <ProductThumbnail imageUrl={line.image_url} alt="" placeholderIcon="grocery" sizeClass="h-11 w-11" />
+        </button>
+        <button type="button" onClick={openDetail} className="min-w-0 flex-1 text-left">
+          <p className={nameClass}>{line.name}</p>
+          <p className="truncate text-body-sm text-on-surface-variant">{stockLine(line)}</p>
+        </button>
+        <QuantityStepper size="xs" tone="neutral" editable value={line.quantity} onChange={changeQuantity} />
+        <button
+          type="button"
+          aria-label={`Quitar ${line.name}`}
+          onClick={() => remove.mutate(line.ean)}
+          className="material-symbols-outlined shrink-0 text-on-surface-variant"
+        >
+          close
+        </button>
       </div>
+      {update.isError && (
+        <p role="alert" className="mt-2 text-body-sm text-error">
+          {UPDATE_ERROR_MESSAGE}
+        </p>
+      )}
     </Card>
   );
 }
 
-/** Props accepted by {@link RegisterBar}. */
-interface RegisterBarProps {
-  checkedCount: number;
-  isSubmitting: boolean;
-  failedCount: number;
-  onRegister: () => void;
+/**
+ * Says how much of a product is at home.
+ *
+ * @param line - The line.
+ * @returns "En casa: 2 units", or that it is not in the pantry.
+ */
+function stockLine(line: ShoppingListItemOut): string {
+  if (line.in_stock == null) return "No está en la despensa";
+  return `En casa: ${formatQuantity(line.in_stock)} ${line.unit}`;
+}
+
+/** Props accepted by {@link PurchaseBar}. */
+interface PurchaseBarProps {
+  pickedUp: number;
 }
 
 /**
- * Bar that registers every checked item as a purchase. Stays near the bottom of the screen,
+ * Bar that registers every picked-up line as a purchase. It stays near the bottom of the screen,
  * above the navigation, so it is reachable without scrolling back up.
  *
- * @param props - How many items are checked, whether a save is in progress and how many failed last time.
- * @returns A sticky bar with the failure message, when there is one, and the register button.
+ * @param props - How many lines are picked up.
+ * @returns The bar with its button, and the outcome of the last attempt.
  */
-function RegisterBar({ checkedCount, isSubmitting, failedCount, onRegister }: RegisterBarProps) {
+function PurchaseBar({ pickedUp }: PurchaseBarProps) {
+  const purchase = useRegisterPurchase();
   return (
     <div className="sticky bottom-24 z-30 flex flex-col gap-2 bg-background/95 py-3 backdrop-blur">
-      {failedCount > 0 && (
+      {purchase.isSuccess && <StatusToast message={REGISTERED_MESSAGE} />}
+      {purchase.isError && (
         <p role="alert" className="text-center text-body-sm text-error">
-          {`No se pudieron añadir ${failedCount} productos`}
+          {PURCHASE_ERROR_MESSAGE}
         </p>
       )}
-      <Button onClick={onRegister} disabled={checkedCount === 0 || isSubmitting}>
-        {`Añadir al stock (${checkedCount})`}
+      <Button onClick={() => purchase.mutate()} disabled={pickedUp === 0 || purchase.isPending}>
+        {`Añadir al stock (${pickedUp})`}
       </Button>
     </div>
   );

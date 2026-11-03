@@ -366,3 +366,63 @@ describe("ProductDetail — loading and errors", () => {
     expect(screen.queryByText("Producto nuevo")).not.toBeInTheDocument();
   });
 });
+
+describe("ProductDetail — add to the shopping list", () => {
+  /** Serves a shopping list that starts with the given lines and records the POSTs. */
+  function mockList(initial: Array<{ ean: string; quantity: number }>) {
+    const lines = initial.map((entry) => ({ name: "Leche Entera", checked: false, unit: "units", ...entry }));
+    const posts: Array<Record<string, unknown>> = [];
+    server.use(
+      http.get("/api/shopping-list", () => HttpResponse.json(lines)),
+      http.post("/api/shopping-list", async ({ request }) => {
+        const body = (await request.json()) as { ean: string };
+        posts.push(body);
+        const existing = lines.find((entry) => entry.ean === body.ean);
+        if (existing) existing.quantity += 1;
+        else lines.push({ name: "Leche Entera", checked: false, unit: "units", ean: body.ean, quantity: 1 });
+        return HttpResponse.json({}, { status: existing ? 200 : 201 });
+      }),
+    );
+    return posts;
+  }
+
+  it("test_detail_manageMode_offersToAddTheProductToTheList", async () => {
+    mockDetailApi([trackedFixture()]);
+    mockList([]);
+    renderInApp(detailRoutes("manage"), [`/despensa/${EAN}`]);
+    expect(await screen.findByRole("button", { name: "Añadir a la lista" })).toBeInTheDocument();
+  });
+
+  it("test_detail_pressingIt_postsTheProductAndThenSaysItIsOnTheList", async () => {
+    mockDetailApi([trackedFixture()]);
+    const posts = mockList([]);
+    renderInApp(detailRoutes("manage"), [`/despensa/${EAN}`]);
+    fireEvent.click(await screen.findByRole("button", { name: "Añadir a la lista" }));
+    await waitFor(() => expect(posts).toEqual([{ ean: EAN }]));
+    expect(await screen.findByRole("button", { name: "En la lista (1)" })).toBeInTheDocument();
+  });
+
+  it("test_detail_alreadyOnTheList_showsTheAmountAndPressingAddsOneMore", async () => {
+    mockDetailApi([trackedFixture()]);
+    const posts = mockList([{ ean: EAN, quantity: 2 }]);
+    renderInApp(detailRoutes("manage"), [`/despensa/${EAN}`]);
+    fireEvent.click(await screen.findByRole("button", { name: "En la lista (2)" }));
+    await waitFor(() => expect(posts).toHaveLength(1));
+    expect(await screen.findByRole("button", { name: "En la lista (3)" })).toBeInTheDocument();
+  });
+
+  it("test_detail_productNotInThePantry_stillOffersTheButton", async () => {
+    mockDetailApi([]);
+    mockList([]);
+    renderInApp(detailRoutes("manage"), [`/despensa/${EAN}`]);
+    expect(await screen.findByRole("button", { name: "Añadir a la lista" })).toBeInTheDocument();
+  });
+
+  it("test_detail_scanMode_doesNotOfferIt", async () => {
+    mockDetailApi([]);
+    mockList([]);
+    renderInApp(detailRoutes("scan"), [`/scan/${EAN}`]);
+    await screen.findByText("Leche Entera");
+    expect(screen.queryByRole("button", { name: /la lista/ })).not.toBeInTheDocument();
+  });
+});

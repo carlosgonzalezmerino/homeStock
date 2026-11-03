@@ -76,13 +76,35 @@ export interface InventoryWithProductOut {
   low: boolean;
 }
 
+/** One line of the shopping list: what to buy, and what is known of the product. */
 export interface ShoppingListItemOut {
   ean: string;
   name: string;
-  quantity: number;
-  threshold: number;
-  unit: string;
+  brand?: string | null;
   image_url?: string | null;
+  /** How much to buy. */
+  quantity: number;
+  /** Picked up while shopping. */
+  checked: boolean;
+  /** Units in the pantry now, or `null` when the product is not tracked there. */
+  in_stock?: number | null;
+  unit: string;
+}
+
+export interface ShoppingListItemCreate {
+  ean: string;
+  quantity?: number;
+}
+
+export interface ShoppingListItemPatch {
+  quantity?: number;
+  checked?: boolean;
+}
+
+/** What registering the picked-up lines did. */
+export interface PurchaseSummary {
+  added: number;
+  created: number;
 }
 
 export type Location = "pantry" | "freezer";

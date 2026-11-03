@@ -35,6 +35,9 @@ cd frontend && npm run check          # type check + tests. Not only `npm test`.
   loses the history without any error. `scripts/check_movements.py` finds the gap.
 - **`consume` (the scan mode that takes units out) is never remembered** between visits and is not
   drawn in the action green. Both are on purpose; see `docs/Features/v0.3/03-modo-consumir.md`.
+- **The shopping list is saved data, not a query.** It holds only what the user adds; being out of
+  stock never puts a product on it. `purchase` is all-or-nothing through `atomic()` (`app/db.py`):
+  any new repository that writes must call `commit_unless_atomic`, not `session.commit()`.
 - The ORM returns the same object it updates: read the *previous* value before calling the service.
 - A screen that clears state and navigates in one click must persist **synchronously**, not from a
   `useEffect` (see `usePurchaseSession`).

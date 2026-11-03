@@ -41,7 +41,7 @@ no es «un modo más»:
 | Lectura | Efecto | Hoja |
 |---|---|---|
 | Producto seguido con stock | `−1` (o lo que quede si es menos de 1). Movimiento `consume`, `source = scan` | «−1 · quedan 2» |
-| Queda 0 tras restar | Igual | «Se acabó · ya está en la lista de la compra» + enlace |
+| Queda 0 tras restar | Igual | «Se acabó» |
 | Producto seguido, stock ya 0 | No cambia nada (`already_empty`) | «Ya estaba agotado» |
 | Producto conocido pero no seguido | No cambia nada (`not_tracked`) | «No está en tu despensa» |
 | Código desconocido | No cambia nada (`unknown`) | «Código sin identificar» |
@@ -49,12 +49,15 @@ no es «un modo más»:
 Las tres últimas usan el tono de **aviso** y vibración de aviso, no de éxito: son lecturas que no
 han hecho lo esperado y quien escanea tiene que enterarse sin mirar.
 
-### «Añadir a la lista» ya está hecho
+### La lista de la compra no se toca
 
-La lista de la compra es **derivada** del stock (`quantity == 0 or quantity < threshold`). Un
-producto que llega a 0 aparece en ella por sí solo, sin acción. La hoja no ofrece «añadir a la
-lista»: **dice que ya está**, con un enlace a `/lista`. Una lista con ítems sueltos (D3) sigue
-siendo otra iteración.
+> **Cambiado (2026-11-03).** Esta spec se escribió cuando la lista de la compra se derivaba del
+> stock, y decía «Se acabó · ya está en la lista» con un enlace. La [Spec 04 de v0.2](../v0.2/04-lista-de-la-compra-manual.md)
+> la convirtió en una lista **propia**: solo contiene lo que el usuario añade, y estar a 0 no mete
+> nada. Esa frase habría sido falsa, así que la hoja dice solo «Se acabó».
+
+Añadir a la lista desde el escáner es una decisión de interfaz propia (N-09), fuera de alcance de la
+Spec 04 y de esta.
 
 ### Cantidades
 
@@ -75,8 +78,8 @@ despensa con el stepper, que registra `consume`/`purchase` según el signo (spec
 2. Escanear uno con stock 0,5 lo deja en 0 con `delta = −0,5`.
 3. Escanear uno con stock 0 no cambia nada y avisa; no genera movimiento.
 4. Escanear un producto conocido pero no seguido **no lo crea**.
-5. Al llegar a 0 la hoja dice que ya está en la lista de la compra, y es verdad: `GET /api/shopping-list`
-   lo devuelve.
+5. Al llegar a 0 la hoja dice solo «Se acabó» y **no** afirma nada sobre la lista; `GET /api/shopping-list`
+   sigue sin devolver el producto (la lista solo tiene lo que se añade).
 6. Salir de `/scan` y volver, tras estar en Gastar, abre en Detalle o Compra, nunca en Gastar.
 7. `localStorage` no contiene `consume` en ningún momento.
 8. El modo Gastar no usa el color de acción en banner, marco ni pestaña activa.
@@ -87,7 +90,7 @@ despensa con el stepper, que registra `consume`/`purchase` según el signo (spec
 | Fichero | Casos |
 |---|---|
 | `tests/services/test_scan.py` | Resta 1; fracción; ya vacío; no seguido no se crea; desconocido |
-| `tests/api/test_scan.py` | El flujo completo de consumo y su aparición en la lista de la compra |
+| `tests/api/test_scan.py` | El flujo completo de consumo; gastar hasta 0 **no** mete el producto en la lista |
 | `src/screens/Scan.consume.test.tsx` | Modo no persistido; banner; hoja «se acabó» con enlace; avisos de las tres lecturas inertes |
 | `src/utils/scanMode.test.ts` | Lectura y escritura de modo: `consume` nunca se guarda ni se restaura |
 
@@ -103,22 +106,23 @@ despensa con el stepper, que registra `consume`/`purchase` según el signo (spec
 
 **Qué se hizo.** Modo «Gastar» sobre el mismo motor y endpoint de la spec 02: banner permanente,
 marco del visor y pestaña activa en `tertiary`, nunca en verde; `consume` no se guarda en
-`localStorage` ni se restaura; la hoja dice «Se acabó · ya está en la lista de la compra» con
-enlace a `/lista`.
+`localStorage` ni se restaura; la hoja dice «Se acabó» (ver el aviso de la sección «La lista
+de la compra no se toca»).
 
 **Cómo se comprobó.**
 
 | Comprobación | Resultado |
 |---|---|
 | Servicio y API de `consume`: resta 1, fracción, ya vacío, no seguido (**no se crea**), desconocido | Tests verdes |
-| «Se acabó» es verdad: tras gastar hasta 0, `GET /api/shopping-list` devuelve el producto | Test de API verde |
+| Tras gastar hasta 0, `GET /api/shopping-list` **no** devuelve el producto, y la hoja no habla de la lista | Test de API y de pantalla verdes |
 | `consume` nunca se escribe; si algo lo escribe, no se restaura | 8 tests de `scanMode`, más el de pantalla |
 | Mutación: dejar que `consume` se recuerde | Hace fallar **5 tests**; restaurado |
 | Recorrido real contra el servidor (copia de tu base): `consume` de 5 → 4 con movimiento `consume` / `scan` | Correcto |
 | Deshacer un `consume` devuelve la unidad | Cubierto por tests de servicio y de API; **no** se repitió en el recorrido real (ahí se deshizo la compra) |
 
-**Desviaciones.** Ninguna de fondo. «Añadir a la lista» sigue sin existir como acción, porque no
-hace falta: la lista es derivada del stock.
+**Desviaciones.** Una, posterior: al pasar la lista de la compra a ser manual (v0.2/04), la hoja dejó de
+decir «ya está en la lista» y el enlace desapareció. «Añadir a la lista» desde el escáner sigue sin
+existir como acción (N-09).
 
 **No verificado.** Lo mismo que la spec 02: cámara en iPhone y revisión visual. Especialmente que el
 color de aviso de «Gastar» se distinga bien con la pantalla a poco brillo.

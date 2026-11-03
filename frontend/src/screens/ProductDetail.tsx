@@ -6,6 +6,7 @@ import { BackButton, ErrorState, Spinner } from "@/components";
 import { useActiveLocation } from "@/location";
 import type { InventoryWithProductOut, ProductOut } from "@/types";
 import { AddStockCard } from "./detail/AddStockCard";
+import { AddToListButton } from "./detail/AddToListButton";
 import { ManageStockCards } from "./detail/ManageStockCards";
 import { MacrosCard, ProductHeader } from "./detail/ProductInfo";
 import { returnToPrevious, returnToScanner, type DetailMode } from "./detail/navigation";
@@ -92,6 +93,7 @@ function ProductView({ product, ean, tracked, mode, hasPreviousScreen }: Product
     <div className="flex flex-col gap-6 pt-6">
       <BackButton onBack={() => returnToPrevious(navigate, hasPreviousScreen, mode)} />
       <ProductHeader product={product} />
+      {mode === "manage" && <AddToListButton ean={ean} />}
       {isManaging ? (
         <ManageStockCards tracked={tracked} editor={editor} onSaved={onSaved} onRemoved={() => returnToPrevious(navigate, false, "manage")} />
       ) : (

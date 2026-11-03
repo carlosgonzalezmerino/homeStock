@@ -43,8 +43,8 @@ Dependency direction: `screens` use `hooks` and `components`; `hooks` use `api` 
   a JSDoc with `@param` and `@returns` on everything exported, named constants instead of
   numbers, `try` blocks up to 7 lines.
 - A component takes its props through a named `interface` that is documented.
-- Server data goes through TanStack Query hooks. Writes invalidate `["inventory"]` and
-  `["shopping-list"]`.
+- Server data goes through TanStack Query hooks. Stock writes invalidate `["inventory"]`,
+  `["shopping-list"]` and `["review"]` (`invalidateStockQueries`).
 - Every `localStorage` access is inside a `try`, and failure only logs a warning.
 - Text typed by the user stays as text until it is validated and parsed (`utils/parse.ts`).
   Numbers shown to the user go through `formatQuantity`.
@@ -67,4 +67,3 @@ See [../docs/TESTING.md](../docs/TESTING.md). In short:
 - `npm audit` reports two moderate vulnerabilities in `react-router` 6. The fixed version is 7,
   which changes the API, so the upgrade is a task of its own. The app has no server-side
   rendering and builds its links from encoded codes, so the exposure on a home network is low.
-- The shopping list endpoint has a hook (`useShoppingList`) but no screen.

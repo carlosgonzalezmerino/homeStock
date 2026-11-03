@@ -63,13 +63,14 @@ def test_scan_consume_takes_one_unit_and_reports_the_low_flag(
     assert (body["status"], body["quantity_after"], body["low"]) == ("applied", 1, True)
 
 
-def test_scan_consume_to_zero_puts_the_product_on_the_shopping_list(
+def test_scan_consume_to_zero_does_not_put_the_product_on_the_shopping_list(
     client, seed_product
 ) -> None:
     seed_product(ean="1", name="Milk")
     client.post("/api/inventory", json={"ean": "1", "quantity": 1, "threshold": 0})
-    _scan(client, mode="consume")
-    assert [line["ean"] for line in client.get("/api/shopping-list").json()] == ["1"]
+    body = _scan(client, mode="consume").json()
+    assert body["quantity_after"] == 0
+    assert client.get("/api/shopping-list").json() == []
 
 
 def test_scan_consume_of_an_untracked_product_does_not_create_it(

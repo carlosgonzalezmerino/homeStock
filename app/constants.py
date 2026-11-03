@@ -78,3 +78,8 @@ STALE_DAYS = 60
 MAX_REVIEW_CARDS = 10
 REVIEW_OVERDUE = "overdue"
 REVIEW_STALE = "stale"
+
+# Shopping list.
+SHOPPING_DEFAULT_QUANTITY = 1.0
+# Threshold of a product created by registering a purchase: it only warns at 0.
+SHOPPING_PURCHASE_THRESHOLD = 0.0

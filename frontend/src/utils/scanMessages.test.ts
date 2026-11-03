@@ -24,9 +24,6 @@ describe("describeScan — purchase", () => {
     expect(text).toMatchObject({ title: "111", detail: "Código sin identificar, queda para revisar", tone: "warning" });
   });
 
-  it("test_describeScan_purchaseNeverLinksToTheShoppingList", () => {
-    expect(describeScan(result({ quantity_after: 0 })).linksToShoppingList).toBe(false);
-  });
 });
 
 describe("describeScan — consume", () => {
@@ -34,21 +31,19 @@ describe("describeScan — consume", () => {
 
   it("test_describeScan_consumeApplied_saysMinusOneAndWhatIsLeft", () => {
     const text = describeScan(result({ ...consume, quantity_after: 2 }));
-    expect(text).toMatchObject({ detail: "−1 · quedan 2 units", tone: "success", linksToShoppingList: false });
+    expect(text).toMatchObject({ detail: "−1 · quedan 2 units", tone: "success" });
   });
 
-  it("test_describeScan_consumeToZero_saysItIsOnTheShoppingListAndLinksToIt", () => {
+  it("test_describeScan_consumeToZero_onlySaysItRanOutAndMakesNoClaimAboutTheList", () => {
     const text = describeScan(result({ ...consume, quantity_after: 0 }));
-    expect(text).toMatchObject({
-      detail: "Se acabó · ya está en la lista de la compra",
-      tone: "success",
-      linksToShoppingList: true,
-    });
+    expect(text).toMatchObject({ detail: "Se acabó", tone: "success" });
+    expect(text.detail).not.toMatch(/lista/i);
+    expect(text).not.toHaveProperty("linksToShoppingList");
   });
 
   it("test_describeScan_consumeAlreadyEmpty_isAWarning", () => {
     const text = describeScan(result({ ...consume, status: "already_empty", quantity_after: 0 }));
-    expect(text).toMatchObject({ detail: "Ya estaba agotado", tone: "warning", linksToShoppingList: false });
+    expect(text).toMatchObject({ detail: "Ya estaba agotado", tone: "warning" });
   });
 
   it("test_describeScan_consumeNotTracked_isAWarning", () => {

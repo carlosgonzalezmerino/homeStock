@@ -5,6 +5,7 @@ from sqlalchemy import func
 from sqlmodel import Session, col, select
 
 from app.constants import REASON_CONSUME
+from app.db import commit_unless_atomic
 from app.models import StockMovement
 
 
@@ -44,7 +45,7 @@ class MovementRepository:
             The stored movement, refreshed from the database.
         """
         self._session.add(movement)
-        self._session.commit()
+        commit_unless_atomic(self._session)
         self._session.refresh(movement)
         return movement
 

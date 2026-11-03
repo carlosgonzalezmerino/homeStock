@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from sqlalchemy import or_
 from sqlmodel import Session, select
 
+from app.db import commit_unless_atomic
 from app.models import InventoryItem
 
 
@@ -68,7 +69,7 @@ class InventoryRepository:
             The stored row, refreshed from the database.
         """
         self._session.add(item)
-        self._session.commit()
+        commit_unless_atomic(self._session)
         self._session.refresh(item)
         return item
 
@@ -91,7 +92,7 @@ class InventoryRepository:
             setattr(item, key, value)
         item.updated_at = datetime.now(UTC)
         self._session.add(item)
-        self._session.commit()
+        commit_unless_atomic(self._session)
         self._session.refresh(item)
         return item
 
@@ -108,5 +109,5 @@ class InventoryRepository:
         if item is None:
             return False
         self._session.delete(item)
-        self._session.commit()
+        commit_unless_atomic(self._session)
         return True

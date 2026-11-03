@@ -87,9 +87,8 @@ def test_half_unit_with_zero_threshold_is_not_low_until_empty(migrated) -> None:
     assert client.get("/api/shopping-list").json() == []
     client.patch(f"/api/inventory/{OFF_EAN}", json={"quantity": 0})
     assert client.get("/api/inventory").json()[0]["low"] is True
-    assert [row["name"] for row in client.get("/api/shopping-list").json()] == [
-        "Leche entera"
-    ]
+    # Being out of stock raises the alert, but it never puts anything on the list.
+    assert client.get("/api/shopping-list").json() == []
 
 
 def test_moving_to_pantry_clears_the_freezer_fields_in_the_database(migrated) -> None:

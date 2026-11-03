@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from contextlib import contextmanager
 
 from sqlalchemy import Engine
 from sqlalchemy.pool import StaticPool
@@ -79,3 +80,51 @@ def get_session() -> Iterator[Session]:
         raise RuntimeError("engine not initialized; call set_engine()")
     with Session(_engine) as session:
         yield session
+
+
+# Key in `Session.info` that tells the repositories not to commit on their own.
+_ATOMIC_KEY = "atomic"
+
+
+def commit_unless_atomic(session: Session) -> None:
+    """Commits a write, unless the session is inside an `atomic` block.
+
+    Repositories call this instead of `session.commit()`. Inside an `atomic` block it
+    only flushes, so the write is visible to the next statement but can still be
+    rolled back.
+
+    Args:
+        session: The session that holds the write.
+    """
+    if session.info.get(_ATOMIC_KEY):
+        session.flush()
+    else:
+        session.commit()
+
+
+@contextmanager
+def atomic(session: Session) -> Iterator[None]:
+    """Makes everything written inside the block succeed or fail together.
+
+    Every repository on this session stops committing for the length of the block. If
+    the block raises, all of it is rolled back and the error continues. Blocks do not
+    nest: the inner one joins the outer one and leaves the commit to it.
+
+    Args:
+        session: The session whose writes are grouped.
+
+    Yields:
+        Nothing. Write inside the `with` block.
+    """
+    if session.info.get(_ATOMIC_KEY):
+        yield
+        return
+    session.info[_ATOMIC_KEY] = True
+    try:
+        yield
+        session.commit()
+    except BaseException:
+        session.rollback()
+        raise
+    finally:
+        session.info.pop(_ATOMIC_KEY, None)
