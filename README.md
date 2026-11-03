@@ -14,9 +14,10 @@ left in the pantry and in the freezer, and see what is running low.
 | Scanning | Reads EAN barcodes and Mercadona QR codes with the phone camera, or a code typed by hand. The camera only runs while you ask for it. |
 | Product lookup | Local catalogue first, then the imported OpenFoodFacts subset. Unknown codes go to a manual form. Every hit is cached in the catalogue. |
 | Stock | One stock row per product, with a quantity, an alert threshold, a unit and a location (pantry or freezer). Quantities accept decimals such as `0,5`. |
-| Freezer | A freezer item can carry a drawer (1 to 4) and the date it was frozen. |
+| Freezer | A freezer item can carry a drawer (1 to 4) and the date it was frozen. The pantry list shows how long ago, and flags anything past 6 months. |
 | Notes | Free text per stock row, up to 500 characters. |
 | Alerts | The dashboard lists what is low on stock. Each alert opens the product. |
+| Shopping list | `/lista` lists what is low on stock, with how much to buy. Check items off while shopping and register the whole batch in one go. |
 | Products without a barcode | "Añadir sin código" creates a product with a generated `CUSTOM-` code. |
 
 ### When is a product "low"?
@@ -32,8 +33,6 @@ The same rule is used by the stock list, the alerts and the shopping list.
 
 ### Known gaps
 
-- The shopping list exists as an API (`GET /api/shopping-list`) and as a hook, but **no screen
-  shows it yet**. The dashboard shows the same products as alerts.
 - A product can be in one location only. Having the same product in the pantry and in the
   freezer at once is not supported.
 - Mercadona lookup is implemented and tested but **disabled** in `app/api/deps.py`, because
@@ -206,6 +205,8 @@ The strategy, conventions and the evaluation of the existing tests are in
 | [frontend/README.md](frontend/README.md) | Frontend scripts, structure and conventions |
 | [docs/openapi.json](docs/openapi.json) | Machine-readable API description. A test keeps it in sync |
 | [docs/Features/v0.1/](docs/Features/v0.1/README.md) | Specs of the v0.1 iteration and the session log |
+| [docs/Features/v0.2/](docs/Features/v0.2/README.md) | Specs of the v0.2 iteration. `docs/Features/version0.2.md` is the full catalogue of proposals |
+| [docs/Features/v0.3/](docs/Features/v0.3/README.md) | Specs of the v0.3 iteration, on usability and friction. `docs/Features/version0.3.md` is the full catalogue, including the hardware options |
 | [docs/superpowers/](docs/superpowers) | Earlier specs and plans, with notes where they are superseded |
 
 ## Conventions

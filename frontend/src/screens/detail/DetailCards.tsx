@@ -4,6 +4,7 @@ import { Button, Card, FreezerFields, LocationPicker, QuantityStepper } from "@/
 import { INPUT_CLASS } from "@/components/styles";
 import { NOTES_COUNTER_THRESHOLD, NOTES_MAX_LENGTH, NOTES_ROWS } from "@/constants/inventory";
 import type { Location } from "@/types";
+import { formatFrozenAge } from "@/utils/freezer";
 
 /** Props accepted by {@link LocationCard}. */
 interface LocationCardProps {
@@ -96,6 +97,7 @@ export function FreezerCard({ drawer, frozenAt, isSaving, onSave }: FreezerCardP
 function FreezerCardForm({ drawer, frozenAt, isSaving, onSave }: FreezerCardProps) {
   const [draftDrawer, setDraftDrawer] = useState(drawer);
   const [draftDate, setDraftDate] = useState(frozenAt);
+  const ageLabel = formatFrozenAge(draftDate);
   return (
     <Card>
       <p className="mb-4 text-body-lg text-on-surface-variant">Congelador</p>
@@ -105,6 +107,7 @@ function FreezerCardForm({ drawer, frozenAt, isSaving, onSave }: FreezerCardProp
         onDrawerChange={setDraftDrawer}
         onFrozenAtChange={setDraftDate}
       />
+      {ageLabel && <p className="mt-2 text-body-sm text-on-surface-variant">{ageLabel}</p>}
       <div className="mt-4 flex justify-end">
         <Button size="sm" onClick={() => onSave({ drawer: draftDrawer, frozen_at: draftDate })} disabled={isSaving}>
           Guardar

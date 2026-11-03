@@ -10,11 +10,13 @@ interface NavTab {
 const NAV_TABS: readonly NavTab[] = [
   { to: "/", label: "Inicio", icon: "home" },
   { to: "/despensa", label: "Despensa", icon: "kitchen" },
+  { to: "/lista", label: "Lista", icon: "shopping_cart" },
   { to: "/scan", label: "Escanear", icon: "qr_code_scanner" },
   { to: "/settings", label: "Ajustes", icon: "settings" },
 ];
 
-const TAB_BASE_CLASS = "flex flex-col items-center gap-1 rounded-pill px-4 py-2 transition-colors";
+/** Horizontal padding per tab. Reduced from the original 16px so five tabs still fit at 380px. */
+const TAB_BASE_CLASS = "flex flex-col items-center gap-1 rounded-pill px-3 py-2 transition-colors";
 const ACTIVE_TAB_CLASS = "bg-neon-pulse text-obsidian-shell";
 const INACTIVE_TAB_CLASS = "text-slate-text";
 

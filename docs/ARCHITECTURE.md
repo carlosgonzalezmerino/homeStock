@@ -98,8 +98,9 @@ React Router 6. The full structure is in [`frontend/README.md`](../frontend/READ
 | Path | Screen | Purpose |
 |---|---|---|
 | `/` | Dashboard | Totals and the products that are low on stock. Each alert opens its product. |
-| `/despensa` | Pantry | Pantry and freezer tabs, search, inline quantity buttons. |
+| `/despensa` | Pantry | Pantry and freezer tabs, search, inline quantity buttons. The freezer tab shows how long ago each item was frozen and can sort by that age. |
 | `/despensa/:ean` | Product detail, `manage` mode | Edit a product that is in the pantry. |
+| `/lista` | Shopping list | What is low on stock, with the amount to buy. Check items off while shopping, then register the batch in one go. |
 | `/scan` | Scan | Camera, typed code, link to "Añadir sin código". |
 | `/scan/:ean` | Product detail, `scan` mode | Register a purchase after a scan. |
 | `/scan/:ean/manual` | Manual entry | Product the catalogue does not know. |
@@ -133,6 +134,7 @@ that is already tracked is never shown as new.
 | Active location (pantry or freezer) | `ActiveLocationProvider` | `localStorage["activeLocation"]`. Selects the tab and preselects the location when adding. |
 | Theme | `ThemeProvider` | `localStorage["theme"]` |
 | Scanner diagnostics | `utils/diagnostics.ts` | `localStorage["scannerDiagnostics"]` |
+| Shopping list items picked up | `useCheckedItems` | `localStorage["shoppingChecked"]`. EANs no longer on the list are dropped on load |
 
 Every `localStorage` access is wrapped: if storage is blocked the app keeps working in memory and
 logs a warning.

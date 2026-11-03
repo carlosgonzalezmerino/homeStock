@@ -5,7 +5,20 @@ import { Route, Routes } from "react-router-dom";
 import { server } from "@/test/server";
 import { renderInApp } from "@/test/helpers";
 import { trackedFixture } from "@/test/fixtures";
+import { localIsoDate } from "@/utils/date";
 import { Pantry } from "./Pantry";
+
+/**
+ * Builds the ISO date a number of days before today, for freezer age tests.
+ *
+ * @param days - How many days ago.
+ * @returns The local ISO date.
+ */
+function daysAgo(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return localIsoDate(date);
+}
 
 const PANTRY_ITEM = trackedFixture(
   { ean: "1111111111111", id: 1, quantity: 5, threshold: 2, location: "pantry" },
@@ -148,6 +161,88 @@ describe("Pantry — added confirmation", () => {
     renderInApp(pantryRoutes(), ["/despensa"]);
     await screen.findByText("Leche Entera");
     expect(screen.queryByText("✓ Producto añadido")).not.toBeInTheDocument();
+  });
+});
+
+describe("Pantry — freezer age and sort", () => {
+  it("test_pantry_freezerItemWithFrozenDate_showsAge", async () => {
+    localStorage.setItem("activeLocation", "freezer");
+    mockInventory([
+      trackedFixture(
+        { ean: "4444444444444", id: 4, location: "freezer", frozen_at: daysAgo(12) },
+        { ean: "4444444444444", name: "Gambas" },
+      ),
+    ]);
+    renderInApp(pantryRoutes(), ["/despensa"]);
+    expect(await screen.findByText(/Hace 12 días/)).toBeInTheDocument();
+  });
+
+  it("test_pantry_freezerItemOverSixMonths_showsStaleIcon", async () => {
+    localStorage.setItem("activeLocation", "freezer");
+    mockInventory([
+      trackedFixture(
+        { ean: "5555555555555", id: 5, location: "freezer", frozen_at: daysAgo(200) },
+        { ean: "5555555555555", name: "Solomillo" },
+      ),
+    ]);
+    renderInApp(pantryRoutes(), ["/despensa"]);
+    await screen.findByText("Solomillo");
+    expect(screen.getByRole("img", { name: "Lleva mucho tiempo congelado" })).toBeInTheDocument();
+  });
+
+  it("test_pantry_freezerItemUnderSixMonths_hidesStaleIcon", async () => {
+    localStorage.setItem("activeLocation", "freezer");
+    mockInventory([
+      trackedFixture(
+        { ean: "6666666666666", id: 6, location: "freezer", frozen_at: daysAgo(30) },
+        { ean: "6666666666666", name: "Guisantes" },
+      ),
+    ]);
+    renderInApp(pantryRoutes(), ["/despensa"]);
+    await screen.findByText("Guisantes");
+    expect(screen.queryByRole("img", { name: "Lleva mucho tiempo congelado" })).not.toBeInTheDocument();
+  });
+
+  it("test_pantry_freezerItemWithoutDate_showsNoAgeAndSortsLast", async () => {
+    localStorage.setItem("activeLocation", "freezer");
+    mockInventory([
+      trackedFixture({ ean: "7777777777777", id: 7, location: "freezer", frozen_at: daysAgo(90) }, { ean: "7777777777777", name: "Viejo" }),
+      trackedFixture({ ean: "8888888888888", id: 8, location: "freezer" }, { ean: "8888888888888", name: "SinFecha" }),
+    ]);
+    renderInApp(pantryRoutes(), ["/despensa"]);
+    const names = (await screen.findAllByText(/^(Viejo|SinFecha)$/)).map((el) => el.textContent);
+    expect(names).toEqual(["Viejo", "SinFecha"]);
+  });
+
+  it("test_pantry_sortByAge_defaultOrdersOldestFirst", async () => {
+    localStorage.setItem("activeLocation", "freezer");
+    mockInventory([
+      trackedFixture({ ean: "7777777777777", id: 7, location: "freezer", frozen_at: daysAgo(5) }, { ean: "7777777777777", name: "Nuevo" }),
+      trackedFixture({ ean: "8888888888888", id: 8, location: "freezer", frozen_at: daysAgo(90) }, { ean: "8888888888888", name: "Antiguo" }),
+    ]);
+    renderInApp(pantryRoutes(), ["/despensa"]);
+    const names = (await screen.findAllByText(/^(Nuevo|Antiguo)$/)).map((el) => el.textContent);
+    expect(names).toEqual(["Antiguo", "Nuevo"]);
+  });
+
+  it("test_pantry_sortByName_ordersAlphabetically", async () => {
+    localStorage.setItem("activeLocation", "freezer");
+    mockInventory([
+      trackedFixture({ ean: "7777777777777", id: 7, location: "freezer", frozen_at: daysAgo(5) }, { ean: "7777777777777", name: "Zanahoria" }),
+      trackedFixture({ ean: "8888888888888", id: 8, location: "freezer", frozen_at: daysAgo(90) }, { ean: "8888888888888", name: "Acelga" }),
+    ]);
+    renderInApp(pantryRoutes(), ["/despensa"]);
+    await screen.findByText("Zanahoria");
+    fireEvent.click(screen.getByRole("tab", { name: "Por nombre" }));
+    const names = screen.getAllByText(/^(Zanahoria|Acelga)$/).map((el) => el.textContent);
+    expect(names).toEqual(["Acelga", "Zanahoria"]);
+  });
+
+  it("test_pantry_sortControl_notShownInPantryTab", async () => {
+    mockInventory();
+    renderInApp(pantryRoutes(), ["/despensa"]);
+    await screen.findByText("Leche Entera");
+    expect(screen.queryByRole("tab", { name: "Más antiguo" })).not.toBeInTheDocument();
   });
 });
 

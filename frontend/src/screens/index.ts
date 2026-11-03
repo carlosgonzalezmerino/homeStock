@@ -5,3 +5,4 @@ export { ProductDetail } from "./ProductDetail";
 export { ManualEntry } from "./ManualEntry";
 export { Settings } from "./Settings";
 export { CustomEntry } from "./CustomEntry";
+export { ShoppingList } from "./ShoppingList";

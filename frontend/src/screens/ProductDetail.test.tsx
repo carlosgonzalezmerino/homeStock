@@ -290,6 +290,14 @@ describe("ProductDetail — manage mode, product in the pantry", () => {
     expect(screen.getByRole("button", { name: "Actualizar cantidad" })).toBeEnabled();
   });
 
+  it("test_manageTracked_freezerCardShowsAgeNextToDate", async () => {
+    const twelveDaysAgo = new Date();
+    twelveDaysAgo.setDate(twelveDaysAgo.getDate() - 12);
+    mockDetailApi([trackedFixture({ location: "freezer", drawer: 2, frozen_at: localIsoDate(twelveDaysAgo) })]);
+    renderInApp(detailRoutes("manage"), [`/despensa/${EAN}`]);
+    expect(await screen.findByText("Hace 12 días")).toBeInTheDocument();
+  });
+
   it("test_manageTracked_notesSaveOnlyWhenChanged", async () => {
     mockDetailApi([trackedFixture({ notes: null })]);
     const body = recordBody("patch", `/api/inventory/${EAN}`);

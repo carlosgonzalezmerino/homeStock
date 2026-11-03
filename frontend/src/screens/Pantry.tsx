@@ -17,13 +17,22 @@ import {
 import { useActiveLocation } from "@/location";
 import type { InventoryWithProductOut, Location } from "@/types";
 import { roundQuantity } from "@/utils/format";
-import { normalizeLocation } from "@/utils/freezer";
+import { compareByFreezerAge, formatFrozenAge, isFreezerStale, normalizeLocation } from "@/utils/freezer";
 import { computeStockStatus, isPantryLocation } from "@/utils/stock";
 
 /** Tabs that switch between the two storage locations. */
 const LOCATION_OPTIONS: readonly SegmentOption<Location>[] = [
   { value: "pantry", label: "Despensa" },
   { value: "freezer", label: "Congelador" },
+];
+
+/** Order the freezer tab can be shown in. Not remembered between sessions. */
+type FreezerSort = "age" | "name";
+
+/** Tabs that choose the order of the freezer list. */
+const FREEZER_SORT_OPTIONS: readonly SegmentOption<FreezerSort>[] = [
+  { value: "age", label: "Más antiguo" },
+  { value: "name", label: "Por nombre" },
 ];
 
 /** Message shown when a location has no items at all. */
@@ -65,23 +74,42 @@ function matchesSearch(item: InventoryWithProductOut, query: string): boolean {
 }
 
 /**
- * Filter state of the pantry: the selected location (shared with the rest of the app), the search text and the visible items.
+ * Orders the items of the freezer tab. The pantry tab keeps the order the API returned.
+ *
+ * @param items - The items to order.
+ * @param sort - "age" for the oldest frozen date first, "name" alphabetically.
+ * @returns A new sorted array; the input is never mutated.
+ */
+function sortFreezerItems(items: InventoryWithProductOut[], sort: FreezerSort): InventoryWithProductOut[] {
+  if (sort === "name") {
+    return [...items].sort((a, b) => a.product.name.localeCompare(b.product.name, "es"));
+  }
+  return [...items].sort((a, b) => compareByFreezerAge(a.inventory, b.inventory));
+}
+
+/**
+ * Filter state of the pantry: the selected location (shared with the rest of the app), the search text, the freezer sort order and the visible items.
  *
  * @param items - All inventory items, or `undefined` while they load.
  * @returns The filter state and the setters for it.
  */
 function usePantryFilter(items: InventoryWithProductOut[] | undefined) {
   const [search, setSearch] = useState("");
+  const [freezerSort, setFreezerSort] = useState<FreezerSort>("age");
   const { location, setLocation } = useActiveLocation();
   const locationItems = useMemo(
     () => (items ?? []).filter((item) => belongsToLocation(item, location)),
     [items, location],
   );
-  const visibleItems = useMemo(
+  const searchedItems = useMemo(
     () => locationItems.filter((item) => matchesSearch(item, search)),
     [locationItems, search],
   );
-  return { location, setLocation, search, setSearch, locationItems, visibleItems };
+  const visibleItems = useMemo(
+    () => (location === "freezer" ? sortFreezerItems(searchedItems, freezerSort) : searchedItems),
+    [searchedItems, location, freezerSort],
+  );
+  return { location, setLocation, search, setSearch, freezerSort, setFreezerSort, locationItems, visibleItems };
 }
 
 /**
@@ -138,6 +166,14 @@ function PantryFilters({ filter }: PantryFiltersProps) {
         onChange={(event) => filter.setSearch(event.target.value)}
         className={INPUT_CLASS}
       />
+      {filter.location === "freezer" && (
+        <SegmentedControl
+          options={FREEZER_SORT_OPTIONS}
+          value={filter.freezerSort}
+          onChange={filter.setFreezerSort}
+          ariaLabel="Orden"
+        />
+      )}
     </>
   );
 }
@@ -196,17 +232,41 @@ function useInlineQuantity(item: InventoryWithProductOut) {
 }
 
 /**
- * Text under the product name: the drawer of a freezer item and its note.
+ * Small icon that warns a freezer item has been there too long.
+ *
+ * @returns An accessible icon, named "Lleva mucho tiempo congelado".
+ */
+function StaleFreezerIcon() {
+  return (
+    <span
+      role="img"
+      aria-label="Lleva mucho tiempo congelado"
+      className="material-symbols-outlined shrink-0 text-body-sm text-on-surface-variant"
+    >
+      schedule
+    </span>
+  );
+}
+
+/**
+ * Text under the product name: the drawer and age of a freezer item, and its note.
  *
  * @param props - The inventory item.
  * @returns A short line of detail, or nothing when there is none.
  */
 function PantryItemDetails({ item }: { item: InventoryWithProductOut }) {
   const { inventory, product } = item;
-  const drawerLabel = normalizeLocation(inventory.location) === "freezer" && inventory.drawer ? `Cajón ${inventory.drawer}` : null;
-  const parts = [product.brand, drawerLabel, inventory.notes].filter((part): part is string => Boolean(part));
+  const isFreezer = normalizeLocation(inventory.location) === "freezer";
+  const drawerLabel = isFreezer && inventory.drawer ? `Cajón ${inventory.drawer}` : null;
+  const ageLabel = isFreezer ? formatFrozenAge(inventory.frozen_at) : null;
+  const parts = [product.brand, drawerLabel, ageLabel, inventory.notes].filter((part): part is string => Boolean(part));
   if (parts.length === 0) return null;
-  return <p className="truncate text-body-sm text-on-surface-variant">{parts.join(" · ")}</p>;
+  return (
+    <p className="flex min-w-0 items-center gap-1 text-body-sm text-on-surface-variant">
+      <span className="truncate">{parts.join(" · ")}</span>
+      {isFreezer && isFreezerStale(inventory.frozen_at) && <StaleFreezerIcon />}
+    </p>
+  );
 }
 
 /** Props accepted by {@link PantryItemLabel}. */
